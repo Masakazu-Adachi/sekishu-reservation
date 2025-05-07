@@ -77,7 +77,7 @@ export default function EventDetailPage() {
     await updateDoc(doc(db, "events", event.id), { seats: updatedSeats });
 
     // ✅ 参加人数を更新
-    await updateGuestCount(event.id);
+    await updateParticipantCount(event.id);
 
     alert("予約が完了しました！確認メールをご確認ください。");
     setName("");
