@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
-import { updateGuestCount } from "@/lib/updateGuestCount";
+import { updateGuestCount } from "@/lib/updateParticipantCount";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
