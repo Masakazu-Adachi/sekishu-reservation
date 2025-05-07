@@ -14,7 +14,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { nanoid } from "nanoid";
-import { updateGuestCount } from "@/lib/updateGuestCount"; // ← 追加
+import { updateParticipantCount } from "@/lib/updateParticipantCount"; // ← 追加
 
 export default function EventDetailPage() {
   const { id } = useParams();
