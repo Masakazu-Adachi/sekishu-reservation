@@ -45,3 +45,13 @@ ADMIN_PASS=16731227
 ```
 
 Create a `.env` file based on `.env.example` to customize these values.
+
+## Email configuration
+
+The application sends reservation confirmations using the [Resend](https://resend.com/) service. Set your Resend API key in the environment so that `/api/send-email` can send emails:
+
+```bash
+RESEND_API_KEY=your_resend_api_key
+```
+
+The default sender address is `onboarding@resend.dev`, which works without additional domain verification.

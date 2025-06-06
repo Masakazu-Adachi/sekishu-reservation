@@ -7,10 +7,13 @@ export async function POST(req: Request) {
   console.log("✅ APIキー:", process.env.RESEND_API_KEY);
 
   try {
-    const { subject, html } = await req.json();
+    const { to, subject, html } = await req.json();
+
+    if (!to) {
+      throw new Error("送信先メールアドレスが指定されていません");
+    }
 
     // ✅ Freeプラン対応の送信設定
-    const to = "m-adachi@sustirel.com"; // 確実に届くアドレス
     const from = "onboarding@resend.dev"; // 認証不要な送信元
 
     // HTML未指定ならデフォルトに置き換え
