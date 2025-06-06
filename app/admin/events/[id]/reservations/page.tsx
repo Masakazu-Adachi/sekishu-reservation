@@ -10,8 +10,13 @@ import {
   doc,
   updateDoc,
   getDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import LinkBackToAdminTop from "@/components/LinkBackToAdminTop";
+import { updateParticipantCount } from "@/lib/updateParticipantCount";
+import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
+
 
 export default function EventReservationsPage() {
   const params = useParams();
@@ -23,14 +28,12 @@ export default function EventReservationsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // 予約取得
       const snapshot = await getDocs(collection(db, "reservations"));
       const filtered = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .map((doc) => ({ id: doc.id, ...(doc.data() as { eventId: string }) }))
         .filter((res) => res.eventId === eventId);
       setReservations(filtered);
 
-      // 時間枠取得
       const eventRef = doc(db, "events", eventId);
       const eventSnap = await getDoc(eventRef);
       if (eventSnap.exists()) {
@@ -48,18 +51,54 @@ export default function EventReservationsPage() {
     const confirmDelete = confirm("この予約を削除してもよろしいですか？");
     if (!confirmDelete) return;
     await deleteDoc(doc(db, "reservations", id));
+    await updateParticipantCount(eventId);
+    await updateSeatReservedCount(eventId);
     setReservations(reservations.filter((r) => r.id !== id));
   };
 
   const handleEditSubmit = async () => {
     if (!editingId) return;
-    await updateDoc(doc(db, "reservations", editingId), editForm);
+    const reservationRef = doc(db, "reservations", editingId);
+    const reservationSnap = await getDoc(reservationRef);
+    if (!reservationSnap.exists()) return alert("予約が見つかりません");
+
+    const original = reservationSnap.data();
+    const eventRef = doc(db, "events", eventId);
+    const eventSnap = await getDoc(eventRef);
+    if (!eventSnap.exists()) return alert("イベントが見つかりません");
+
+    const event = eventSnap.data();
+    const seat = event.seats.find((s: any) => s.time === editForm.seatTime);
+    if (!seat) return alert("時間枠が無効です");
+
+    const reservationSnapshot = await getDocs(
+      query(
+        collection(db, "reservations"),
+        where("eventId", "==", eventId),
+        where("seatTime", "==", editForm.seatTime)
+      )
+    );
+
+    const reservedCount = reservationSnapshot.docs.reduce((sum, doc) => {
+      if (doc.id === editingId) return sum;
+      return sum + (doc.data().guests || 0);
+    }, 0);
+
+    const totalAfterUpdate = reservedCount + (editForm.guests || 0);
+    if (totalAfterUpdate > seat.capacity) {
+      return alert(`定員（${seat.capacity}名）を超えています。現在の合計: ${totalAfterUpdate}名`);
+    }
+
+    await updateDoc(reservationRef, editForm);
+    await updateParticipantCount(eventId);
+    await updateSeatReservedCount(eventId);
     alert("予約を更新しました");
     setEditingId(null);
     setEditForm({ name: "", guests: 1, seatTime: "" });
+
     const snapshot = await getDocs(collection(db, "reservations"));
     const filtered = snapshot.docs
-      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .map((doc) => ({ id: doc.id, ...(doc.data() as { eventId: string }) }))
       .filter((res) => res.eventId === eventId);
     setReservations(filtered);
   };

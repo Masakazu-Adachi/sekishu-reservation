@@ -1,28 +1,45 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-// .env.local に定義された APIキーを使って Resend を初期化
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
-  // ✅ 環境変数の読み込み確認（デバッグ用）
   console.log("✅ APIキー:", process.env.RESEND_API_KEY);
 
   try {
-    const { to, subject, html } = await req.json();
+    const { subject, html } = await req.json();
 
-    const data = await resend.emails.send({
-      // ✅ テスト用の公式送信元（確実に通る）
-      from: "onboarding@resend.dev",
+    // ✅ Freeプラン対応の送信設定
+    const to = "m-adachi@sustirel.com"; // 確実に届くアドレス
+    const from = "onboarding@resend.dev"; // 認証不要な送信元
+
+    // HTML未指定ならデフォルトに置き換え
+    const htmlBody =
+      html ||
+      `
+        <div style="font-family: sans-serif; line-height: 1.6;">
+          <p>これはテストメールです。</p>
+          <p>Resendの設定確認用として送信されました。</p>
+        </div>
+      `;
+
+    const result = await resend.emails.send({
+      from,
       to,
-      subject,
-      html,
+      subject: subject || "Resendテストメール",
+      html: htmlBody,
     });
 
-    console.log("📨 メール送信成功:", data); // ✅ 送信成功のレスポンス内容
-    return NextResponse.json({ status: "success", data });
+    console.log("📨 メール送信結果:", result);
+
+    // ✅ Resendエラーも返すように明示
+    if (result.error) {
+      throw new Error(JSON.stringify(result.error));
+    }
+
+    return NextResponse.json({ status: "success", data: result });
   } catch (error) {
-    console.error("❌ メール送信エラー:", error); // ✅ エラー出力
-    return NextResponse.json({ status: "error", error });
+    console.error("❌ メール送信エラー:", error);
+    return NextResponse.json({ status: "error", error: String(error) });
   }
 }

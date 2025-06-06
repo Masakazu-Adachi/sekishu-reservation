@@ -10,8 +10,10 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  getDoc,
 } from "firebase/firestore";
-import { updateGuestCount } from "@/lib/updateGuestCount";
+import { updateParticipantCount } from "@/lib/updateParticipantCount";
+import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 
 export default function ReservationConfirmPage() {
   const [email, setEmail] = useState("");
@@ -36,19 +38,51 @@ export default function ReservationConfirmPage() {
   };
 
   const updateReservation = async (id: string, updatedData: any) => {
-    const ref = doc(db, "reservations", id);
-    await updateDoc(ref, updatedData);
-    await updateGuestCount(updatedData.eventId); // ✅ 人数更新
+    const reservationRef = doc(db, "reservations", id);
+    const reservationSnap = await getDoc(reservationRef);
+    if (!reservationSnap.exists()) return alert("予約が見つかりません");
+
+    const original = reservationSnap.data();
+    const eventRef = doc(db, "events", updatedData.eventId);
+    const eventSnap = await getDoc(eventRef);
+    if (!eventSnap.exists()) return alert("イベントが見つかりません");
+
+    const event = eventSnap.data();
+    const seat = event.seats.find((s: any) => s.time === original.seatTime);
+    if (!seat) return alert("時間枠が無効です");
+
+    const reservationSnapshot = await getDocs(
+      query(
+        collection(db, "reservations"),
+        where("eventId", "==", updatedData.eventId),
+        where("seatTime", "==", original.seatTime)
+      )
+    );
+
+    const reservedCount = reservationSnapshot.docs.reduce((sum, doc) => {
+      if (doc.id === id) return sum; // 自分の予約は除外
+      return sum + (doc.data().guests || 0);
+    }, 0);
+
+    const totalAfterUpdate = reservedCount + (updatedData.guests || 0);
+    if (totalAfterUpdate > seat.capacity) {
+      return alert(`定員（${seat.capacity}名）を超えています。現在の合計: ${totalAfterUpdate}名`);
+    }
+
+    await updateDoc(reservationRef, updatedData);
+    await updateParticipantCount(updatedData.eventId);
+    await updateSeatReservedCount(updatedData.eventId);
     alert("予約内容を更新しました");
-    searchReservation(); // 再取得
+    searchReservation();
   };
 
   const deleteReservation = async (id: string, eventId: string) => {
     const ref = doc(db, "reservations", id);
     await deleteDoc(ref);
-    await updateGuestCount(eventId); // ✅ 人数更新
+    await updateParticipantCount(eventId);
+    await updateSeatReservedCount(eventId);
     alert("予約を削除しました");
-    searchReservation(); // 再取得
+    searchReservation();
   };
 
   return (
@@ -101,7 +135,12 @@ export default function ReservationConfirmPage() {
           />
           <button
             className="bg-green-600 text-white px-3 py-1 mr-2 rounded"
-            onClick={() => updateReservation(r.id, { guests: r.guests, eventId: r.eventId })}
+            onClick={() =>
+              updateReservation(r.id, {
+                guests: r.guests,
+                eventId: r.eventId,
+              })
+            }
           >
             更新
           </button>

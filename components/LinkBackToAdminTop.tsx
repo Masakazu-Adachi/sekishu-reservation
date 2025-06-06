@@ -1,5 +1,5 @@
 // components/LinkBackToAdminTop.tsx
-"use client";
+
 
 import { useRouter } from "next/navigation";
 

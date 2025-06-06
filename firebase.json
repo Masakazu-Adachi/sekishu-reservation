@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "site": "ochakai-reserve",
+    "public": ".next",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -14,7 +14,9 @@ import {
   query,
   where,
   writeBatch,
+  addDoc,
 } from "firebase/firestore";
+
 
 const timeOptions = Array.from({ length: 22 }, (_, i) => {
   const hour = Math.floor(i / 2) + 8;
@@ -24,7 +26,10 @@ const timeOptions = Array.from({ length: 22 }, (_, i) => {
 
 const capacityOptions = Array.from({ length: 30 }, (_, i) => i + 1);
 
-export default function EditEventPage({ params }: { params: { id: string } }) {
+export default function EditEventPage() {
+  const params = useParams();
+  const eventId = params.id as string;
+
   const [form, setForm] = useState({
     title: "",
     venue: "",
@@ -36,19 +41,24 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
   const router = useRouter();
 
   useEffect(() => {
+    if (eventId === "new") return;
     const fetchEvent = async () => {
-      const docRef = doc(db, "events", params.id);
+      const docRef = doc(db, "events", eventId);
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         const data = snapshot.data();
         setForm({
-          ...data,
+          title: data.title,
+          venue: data.venue,
           date: data.date.toDate().toISOString().split("T")[0],
+          cost: data.cost,
+          description: data.description,
+          seats: data.seats,
         });
       }
     };
     fetchEvent();
-  }, [params.id]);
+  }, [eventId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -57,7 +67,12 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     const { name, value } = e.target;
     if (typeof index === "number") {
       const updatedSeats = [...form.seats];
-      updatedSeats[index][name] = name === "capacity" ? Number(value) : value;
+      if (name === "time" || name === "capacity") {
+        updatedSeats[index] = {
+          ...updatedSeats[index],
+          [name]: name === "capacity" ? Number(value) : value,
+        };
+      }
       setForm({ ...form, seats: updatedSeats });
     } else {
       setForm({ ...form, [name]: name === "cost" ? Number(value) : value });
@@ -76,18 +91,27 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const docRef = doc(db, "events", params.id);
-    await updateDoc(docRef, {
+
+    const eventData = {
       ...form,
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
       seats: form.seats.map((seat) => ({
         time: seat.time,
         capacity: Number(seat.capacity),
-        reserved: seat.reserved || 0,
+        reserved: 0,
       })),
-    });
-    alert("イベントを更新しました");
+    };
+
+    if (eventId === "new") {
+      await addDoc(collection(db, "events"), eventData);
+      alert("新しいイベントを作成しました");
+    } else {
+      const docRef = doc(db, "events", eventId);
+      await updateDoc(docRef, eventData);
+      alert("イベントを更新しました");
+    }
+
     router.push("/admin/events");
   };
 
@@ -95,10 +119,8 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     const confirmDelete = confirm("本当にこのイベントを削除しますか？");
     if (!confirmDelete) return;
 
-    const eventRef = doc(db, "events", params.id);
-
-    // 関連予約を削除
-    const q = query(collection(db, "reservations"), where("eventId", "==", params.id));
+    const eventRef = doc(db, "events", eventId);
+    const q = query(collection(db, "reservations"), where("eventId", "==", eventId));
     const snapshot = await getDocs(q);
 
     const batch = writeBatch(db);

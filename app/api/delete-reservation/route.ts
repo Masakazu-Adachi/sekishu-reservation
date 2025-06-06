@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { doc, deleteDoc, getDoc } from "firebase/firestore";
-import { updateGuestCount } from "@/lib/updateParticipantCount";
+import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const eventId = snapshot.data().eventId;
 
   await deleteDoc(reservationRef);
-  await updateGuestCount(eventId);
+  await updateParticipantCount(eventId);
 
   return NextResponse.json({ status: "success" });
 }

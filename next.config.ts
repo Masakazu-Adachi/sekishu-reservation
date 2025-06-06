@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // ✅ outputは指定しない（デフォルトのまま）
 };
 
 export default nextConfig;

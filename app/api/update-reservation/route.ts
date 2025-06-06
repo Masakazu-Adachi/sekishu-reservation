@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
-import { updateGuestCount } from "@/lib/updateParticipantCount";
+import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     numberOfParticipants,
   });
 
-  await updateGuestCount(eventId);
+  await updateParticipantCount(eventId);
 
   return NextResponse.json({ status: "success" });
 }

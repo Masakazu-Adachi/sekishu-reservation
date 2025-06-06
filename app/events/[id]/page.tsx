@@ -14,7 +14,9 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { nanoid } from "nanoid";
-import { updateParticipantCount } from "@/lib/updateParticipantCount"; // ← 追加
+import { updateParticipantCount } from "@/lib/updateParticipantCount";
+import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
+
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -41,18 +43,36 @@ export default function EventDetailPage() {
     if (!event || !selectedTime) return;
 
     const seat = event.seats.find((s: any) => s.time === selectedTime);
-    if (!seat || (seat.reserved || 0) + guests > seat.capacity) {
-      alert("この枠は満席です");
+    if (!seat) {
+      alert("選択された時間枠が無効です");
       return;
     }
 
-    const q = query(
-      collection(db, "reservations"),
-      where("eventId", "==", event.id),
-      where("email", "==", email)
+    const reservationSnapshot = await getDocs(
+      query(
+        collection(db, "reservations"),
+        where("eventId", "==", event.id),
+        where("seatTime", "==", selectedTime)
+      )
     );
-    const snap = await getDocs(q);
-    if (!snap.empty) {
+    const reservedCount = reservationSnapshot.docs.reduce(
+      (total, doc) => total + (doc.data().guests || 0),
+      0
+    );
+
+    if (reservedCount + guests > seat.capacity) {
+      alert(`定員(${seat.capacity}名)を超えています。現在の合計: ${reservedCount + guests}名`);
+      return;
+    }
+
+    const duplicateCheck = await getDocs(
+      query(
+        collection(db, "reservations"),
+        where("eventId", "==", event.id),
+        where("email", "==", email)
+      )
+    );
+    if (!duplicateCheck.empty) {
       alert("このメールアドレスでは既に予約済みです");
       return;
     }
@@ -69,15 +89,30 @@ export default function EventDetailPage() {
       createdAt: new Date().toISOString(),
     });
 
-    const updatedSeats = event.seats.map((s: any) =>
-      s.time === selectedTime
-        ? { ...s, reserved: (s.reserved || 0) + guests }
-        : s
-    );
-    await updateDoc(doc(db, "events", event.id), { seats: updatedSeats });
-
-    // ✅ 参加人数を更新
+    await updateSeatReservedCount(event.id);
     await updateParticipantCount(event.id);
+
+    await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: email,
+        subject: `${event.title} のご予約完了通知`,
+        html: `
+          <p>${name}様</p>
+          <p>以下の内容でご予約を承りました。</p>
+          <ul>
+            <li>会場: ${event.venue}</li>
+            <li>日付: ${event.date.toDate().toLocaleDateString("ja-JP")}</li>
+            <li>時間: ${selectedTime}</li>
+            <li>人数: ${guests}名</li>
+          </ul>
+          <p>予約内容の確認・変更には下記の情報をご利用ください。</p>
+          <p><strong>予約時メールアドレス:</strong> ${email}<br/>
+          <strong>パスワード:</strong> ${password}</p>
+        `,
+      }),
+    });
 
     alert("予約が完了しました！確認メールをご確認ください。");
     setName("");

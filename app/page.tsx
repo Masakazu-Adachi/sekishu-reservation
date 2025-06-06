@@ -8,6 +8,7 @@ import { collection, getDocs } from "firebase/firestore";
 
 export default function HomePage() {
   const [events, setEvents] = useState<any[]>([]);
+  const [heroImageUrl, setHeroImageUrl] = useState("/hero-matcha.png"); // 固定画像に切り戻し
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -47,15 +48,13 @@ export default function HomePage() {
       {/* ヒーローセクション */}
       <section
         className="bg-cover bg-center h-96 text-white flex flex-col justify-center items-center"
-        style={{ backgroundImage: "url('/hero-matcha.jpg')" }}
+        style={{ backgroundImage: `url('${heroImageUrl}')` }}
       >
-        <h1 className="text-4xl font-bold">WELCOME TO</h1>
-        <h2 className="text-5xl font-extrabold mt-2">sekishu</h2>
-        <p className="mt-2">石州流野村派のお茶席予約サイト</p>
+        <h1 className="text-5xl font-extrabold mt-2">石州流野村派</h1>
+        <p className="mt-2 text-xl">お茶席予約サイト</p>
         <button className="mt-4 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded">
           直近のお茶会
         </button>
-        {/* 🔽 予約確認・変更ボタンを追加 */}
         <Link href="/reservations/confirm">
           <button className="mt-2 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded">
             予約の確認・変更はこちら
@@ -88,13 +87,15 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="w-full md:w-1/3">
-                <Image
-                  src={event.imageUrl}
-                  alt={event.title}
-                  width={400}
-                  height={250}
-                  className="object-cover w-full h-48 rounded"
-                />
+                <div className="relative w-full aspect-video rounded overflow-hidden">
+                  <Image
+                    src={event.imageUrl}
+                    alt={event.title}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
               </div>
             </div>
           ))}
