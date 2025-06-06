@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
+import type { EventSummary, Seat } from "@/types";
 
 export default function HomePage() {
-  const [events, setEvents] = useState<any[]>([]);
-  const [heroImageUrl, setHeroImageUrl] = useState("/hero-matcha.png"); // 固定画像に切り戻し
+  const [events, setEvents] = useState<EventSummary[]>([]);
+  const heroImageUrl = "/hero-matcha.png"; // 固定画像に切り戻し
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -27,16 +28,16 @@ export default function HomePage() {
           }),
           cost: d.cost,
           description: d.description,
-          participants: d.seats?.reduce(
-            (sum: number, seat: any) => sum + (seat.reserved || 0),
+          participants: (d.seats as Seat[] | undefined)?.reduce(
+            (sum: number, seat) => sum + (seat.reserved || 0),
             0
           ),
-          capacity: d.seats?.reduce(
-            (sum: number, seat: any) => sum + (seat.capacity || 0),
+          capacity: (d.seats as Seat[] | undefined)?.reduce(
+            (sum: number, seat) => sum + (seat.capacity || 0),
             0
           ),
           imageUrl: d.imageUrl || "/event1.jpg",
-        };
+        } as EventSummary;
       });
       setEvents(data);
     };

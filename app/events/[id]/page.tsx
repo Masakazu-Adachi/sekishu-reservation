@@ -15,11 +15,12 @@ import {
 import { nanoid } from "nanoid";
 import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
+import type { Event, Seat } from "@/types";
 
 
 export default function EventDetailPage() {
   const { id } = useParams();
-  const [event, setEvent] = useState<any | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [guests, setGuests] = useState(1);
@@ -31,7 +32,7 @@ export default function EventDetailPage() {
       const docRef = doc(db, "events", id as string);
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
-        setEvent({ id: snapshot.id, ...snapshot.data() });
+        setEvent({ id: snapshot.id, ...snapshot.data() } as Event);
       }
     };
     fetchEvent();
@@ -41,7 +42,7 @@ export default function EventDetailPage() {
     e.preventDefault();
     if (!event || !selectedTime) return;
 
-    const seat = event.seats.find((s: any) => s.time === selectedTime);
+    const seat = (event.seats as Seat[]).find((s) => s.time === selectedTime);
     if (!seat) {
       alert("選択された時間枠が無効です");
       return;
@@ -171,7 +172,7 @@ export default function EventDetailPage() {
             required
           >
             <option value="">時間を選択</option>
-            {event.seats.map((seat: any) => (
+            {(event.seats as Seat[]).map((seat) => (
               <option
                 key={seat.time}
                 value={seat.time}

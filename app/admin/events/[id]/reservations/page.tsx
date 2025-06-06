@@ -16,12 +16,13 @@ import {
 import LinkBackToAdminTop from "@/components/LinkBackToAdminTop";
 import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
+import type { Seat, Reservation } from "@/types";
 
 
 export default function EventReservationsPage() {
   const params = useParams();
   const eventId = params?.id as string;
-  const [reservations, setReservations] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", guests: 1, seatTime: "" });
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
@@ -30,16 +31,16 @@ export default function EventReservationsPage() {
     const fetchData = async () => {
       const snapshot = await getDocs(collection(db, "reservations"));
       const filtered = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...(doc.data() as { eventId: string }) }))
-        .filter((res) => res.eventId === eventId);
-      setReservations(filtered);
+        .map((doc) => ({ id: doc.id, ...doc.data() })) as Reservation[];
+      const byEvent = filtered.filter((res) => res.eventId === eventId);
+      setReservations(byEvent);
 
       const eventRef = doc(db, "events", eventId);
       const eventSnap = await getDoc(eventRef);
       if (eventSnap.exists()) {
         const data = eventSnap.data();
         if (data && data.seats) {
-          const times = data.seats.map((seat: any) => seat.time);
+          const times = (data.seats as Seat[]).map((seat) => seat.time);
           setAvailableTimes(times);
         }
       }
@@ -62,13 +63,14 @@ export default function EventReservationsPage() {
     const reservationSnap = await getDoc(reservationRef);
     if (!reservationSnap.exists()) return alert("予約が見つかりません");
 
-    const original = reservationSnap.data();
     const eventRef = doc(db, "events", eventId);
     const eventSnap = await getDoc(eventRef);
     if (!eventSnap.exists()) return alert("イベントが見つかりません");
 
     const event = eventSnap.data();
-    const seat = event.seats.find((s: any) => s.time === editForm.seatTime);
+    const seat = (event.seats as Seat[]).find(
+      (s) => s.time === editForm.seatTime
+    );
     if (!seat) return alert("時間枠が無効です");
 
     const reservationSnapshot = await getDocs(
@@ -97,10 +99,8 @@ export default function EventReservationsPage() {
     setEditForm({ name: "", guests: 1, seatTime: "" });
 
     const snapshot = await getDocs(collection(db, "reservations"));
-    const filtered = snapshot.docs
-      .map((doc) => ({ id: doc.id, ...(doc.data() as { eventId: string }) }))
-      .filter((res) => res.eventId === eventId);
-    setReservations(filtered);
+    const refreshed = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Reservation[];
+    setReservations(refreshed.filter((res) => res.eventId === eventId));
   };
 
   return (
