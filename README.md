@@ -40,8 +40,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 The `/admin` area is protected by HTTP Basic authentication. Default credentials can be configured using environment variables:
 
 ```
-ADMIN_USER=sekishuu16731227
-ADMIN_PASS=sekishuu16731227
+ADMIN_USER=sekishuu
+ADMIN_PASS=16731227
 ```
 
 Create a `.env` file based on `.env.example` to customize these values.

@@ -4,8 +4,8 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/admin')) {
     const basicAuth = request.headers.get('authorization')
-    const validUser = process.env.ADMIN_USER || 'sekishuu16731227'
-    const validPass = process.env.ADMIN_PASS || 'sekishuu16731227'
+    const validUser = process.env.ADMIN_USER || 'sekishuu'
+    const validPass = process.env.ADMIN_PASS || '16731227'
 
     if (basicAuth) {
       const [scheme, encoded] = basicAuth.split(' ')
