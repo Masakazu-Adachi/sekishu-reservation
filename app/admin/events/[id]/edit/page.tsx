@@ -7,7 +7,6 @@ import {
   doc,
   getDoc,
   updateDoc,
-  deleteDoc,
   Timestamp,
   collection,
   getDocs,
