@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
+import type { Seat } from "@/types";
 
 interface Reservation {
   id: string;
@@ -32,7 +33,7 @@ export default function UserListPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", guests: 1, seatTime: "" });
   const [eventSeatTimes, setEventSeatTimes] = useState<Record<string, string[]>>({});
-  const [eventSeatMap, setEventSeatMap] = useState<Record<string, any[]>>({});
+  const [eventSeatMap, setEventSeatMap] = useState<Record<string, Seat[]>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,15 +44,15 @@ export default function UserListPage() {
       const eventIds = Array.from(new Set(data.map((r) => r.eventId)));
       const titles: Record<string, string> = {};
       const seatTimes: Record<string, string[]> = {};
-      const seatMap: Record<string, any[]> = {};
+      const seatMap: Record<string, Seat[]> = {};
 
       for (const id of eventIds) {
         const eventSnap = await getDoc(doc(db, "events", id));
         if (eventSnap.exists()) {
           const data = eventSnap.data();
           titles[id] = data.title || "(不明なイベント)";
-          const seats = data.seats || [];
-          seatTimes[id] = seats.map((s: any) => s.time);
+          const seats: Seat[] = data.seats || [];
+          seatTimes[id] = seats.map((s: Seat) => s.time);
           seatMap[id] = seats;
         } else {
           titles[id] = "(不明なイベント)";
@@ -103,7 +104,7 @@ export default function UserListPage() {
     const { eventId } = data;
 
     const seats = eventSeatMap[eventId];
-    const selectedSeat = seats.find((s: any) => s.time === editForm.seatTime);
+    const selectedSeat = seats.find((s: Seat) => s.time === editForm.seatTime);
     if (!selectedSeat) {
       alert("選択された時間枠が無効です");
       return;

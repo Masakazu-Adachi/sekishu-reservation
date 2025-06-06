@@ -1,4 +1,5 @@
 import { db } from "./firebase";
+import type { Seat } from "@/types";
 import {
   doc,
   updateDoc,
@@ -33,7 +34,7 @@ export const updateSeatReservedCount = async (eventId: string) => {
     reservedMap[data.seatTime] += data.guests || 0;
   });
 
-  const updatedSeats = seats.map((seat: any) => ({
+  const updatedSeats = (seats as Seat[]).map((seat) => ({
     ...seat,
     reserved: reservedMap[seat.time] || 0,
   }));

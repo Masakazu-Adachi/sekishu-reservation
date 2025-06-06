@@ -14,11 +14,12 @@ import {
 } from "firebase/firestore";
 import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
+import type { Reservation, Seat } from "@/types";
 
 export default function ReservationConfirmPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [reservations, setReservations] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(false);
 
   const searchReservation = async () => {
@@ -32,12 +33,15 @@ export default function ReservationConfirmPage() {
     const results = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-    }));
+    })) as Reservation[];
     setReservations(results);
     setLoading(false);
   };
 
-  const updateReservation = async (id: string, updatedData: any) => {
+  const updateReservation = async (
+    id: string,
+    updatedData: { eventId: string; guests: number }
+  ) => {
     const reservationRef = doc(db, "reservations", id);
     const reservationSnap = await getDoc(reservationRef);
     if (!reservationSnap.exists()) return alert("予約が見つかりません");
@@ -48,7 +52,9 @@ export default function ReservationConfirmPage() {
     if (!eventSnap.exists()) return alert("イベントが見つかりません");
 
     const event = eventSnap.data();
-    const seat = event.seats.find((s: any) => s.time === original.seatTime);
+    const seat = (event.seats as Seat[]).find(
+      (s) => s.time === original.seatTime
+    );
     if (!seat) return alert("時間枠が無効です");
 
     const reservationSnapshot = await getDocs(
