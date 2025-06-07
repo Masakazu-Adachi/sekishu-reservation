@@ -105,6 +105,7 @@ export default function EventDetailPage() {
         to: email,
         subject: `${event.title} のご予約完了通知`,
         html: `
+
           <div style="font-family:sans-serif; line-height:1.6;">
             <p>${name}様</p>
             <p>以下の内容でご予約を承りました。</p>
@@ -124,6 +125,7 @@ export default function EventDetailPage() {
             <p>お支払いは以下にお振込みお願いします。</p>
             <p>XXX銀行<br/>XXX支店<br/>普通 XXXXXXXX<br/>振込期限：X月X日<br/>振込人名義は（申込者様）のお名前にてお願いします。</p>
           </div>
+
         `,
       }),
     });
@@ -135,6 +137,7 @@ export default function EventDetailPage() {
         to: "m-adachi@sustirel.com",
         subject: `${event.title} の予約が入りました`,
         html: `
+
           <div style="font-family:sans-serif; line-height:1.6;">
             <p>${name}様から予約がありました。</p>
             <ul>
@@ -150,6 +153,7 @@ export default function EventDetailPage() {
               <li><strong>自由記述:</strong> ${notes || "(なし)"}</li>
             </ul>
           </div>
+
         `,
       }),
     });
