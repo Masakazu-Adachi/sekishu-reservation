@@ -87,7 +87,7 @@ export default function ReservationConfirmPage() {
     await deleteDoc(ref);
     await updateParticipantCount(eventId);
     await updateSeatReservedCount(eventId);
-    alert("予約を削除しました");
+    alert("予約をキャンセルしました");
     searchReservation();
   };
 
@@ -154,7 +154,7 @@ export default function ReservationConfirmPage() {
             className="bg-red-600 text-white px-3 py-1 rounded"
             onClick={() => deleteReservation(r.id, r.eventId)}
           >
-            削除
+            予約をキャンセル
           </button>
         </div>
       ))}

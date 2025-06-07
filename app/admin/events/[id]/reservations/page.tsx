@@ -49,7 +49,7 @@ export default function EventReservationsPage() {
   }, [eventId]);
 
   const handleDelete = async (id: string) => {
-    const confirmDelete = confirm("この予約を削除してもよろしいですか？");
+    const confirmDelete = confirm("この予約をキャンセルしてもよろしいですか？");
     if (!confirmDelete) return;
     await deleteDoc(doc(db, "reservations", id));
     await updateParticipantCount(eventId);
@@ -182,7 +182,7 @@ export default function EventReservationsPage() {
                       onClick={() => handleDelete(res.id)}
                       className="px-3 py-1 text-sm bg-red-500 text-white rounded"
                     >
-                      削除
+                      予約をキャンセル
                     </button>
                   </div>
                 </div>
