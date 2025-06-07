@@ -105,27 +105,41 @@ export default function EventDetailPage() {
         to: email,
         subject: `${event.title} のご予約完了通知`,
         html: `
-
-          <div style="font-family:sans-serif; line-height:1.6;">
-            <p>${name}様</p>
-            <p>以下の内容でご予約を承りました。</p>
-            <ul>
-              <li><strong>会場:</strong> ${event.venue}</li>
-              <li><strong>日付:</strong> ${event.date
+          <div style="font-family:'Hiragino Mincho Pro', serif; line-height:1.8; font-size:16px;">
+            <p>${name} 様</p>
+            <p>
+              この度は「${event.title}」にお申し込みいただき、誠にありがとうございます。<br/>
+              以下の内容でご予約を承りましたのでご確認ください。
+            </p>
+            <hr/>
+            <div>
+              <p><strong>会場：</strong>${event.venue}</p>
+              <p><strong>日付：</strong>${event.date
                 .toDate()
-                .toLocaleDateString("ja-JP")}</li>
-              <li><strong>時間:</strong> ${selectedTime}</li>
-              <li><strong>人数:</strong> ${guests}名</li>
-            </ul>
-            <p><a href="${confirmUrl}">予約の確認/変更/キャンセルはこちらからお願いします。</a></p>
-            <p>予約内容の確認・変更には下記の情報をご利用ください。</p>
-            <p><strong>予約時メールアドレス:</strong> ${email}<br/>
-            <strong>パスワード:</strong> ${password}</p>
-            <p><strong>合計金額:</strong> ${totalCost}円</p>
-            <p>お支払いは以下にお振込みお願いします。</p>
-            <p>XXX銀行<br/>XXX支店<br/>普通 XXXXXXXX<br/>振込期限：X月X日<br/>振込人名義は（申込者様）のお名前にてお願いします。</p>
+                .toLocaleDateString('ja-JP')}</p>
+              <p><strong>時間：</strong>${selectedTime}</p>
+              <p><strong>人数：</strong>${guests}名</p>
+            </div>
+            <hr/>
+            <div>
+              <p>ご予約内容の確認・変更・キャンセルは下記URLよりお手続きください。</p>
+              <p><a href="${confirmUrl}" style="color:#1a73e8;">${confirmUrl}</a></p>
+              <p>その際、下記情報が必要となります。</p>
+              <p><strong>ご登録メールアドレス：</strong>${email}<br/>
+              <strong>パスワード：</strong>${password}</p>
+            </div>
+            <hr/>
+            <div>
+              <p><strong>お支払い金額：</strong>${totalCost}円</p>
+              <p>お振込み先：</p>
+              <p>
+                XXX銀行<br/>XXX支店<br/>普通 XXXXXXXX<br/>振込期限：X月X日<br/>
+                振込人名義はご予約者様のお名前でお願いいたします。
+              </p>
+            </div>
+            <p>当日お会いできますことを、心より楽しみにしております。</p>
+            <p>ご不明点などございましたら、お気軽に本メールへご返信ください。</p>
           </div>
-
         `,
       }),
     });
