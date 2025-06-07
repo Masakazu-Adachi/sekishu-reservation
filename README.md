@@ -52,6 +52,7 @@ The application sends reservation confirmations using the [Resend](https://resen
 
 ```bash
 RESEND_API_KEY=your_resend_api_key
+FROM_EMAIL=noreply@sustirel.com
 ```
 
-The default sender address is `onboarding@resend.dev`, which works without additional domain verification.
+By default the sender address is `onboarding@resend.dev`, but you can override it using the `FROM_EMAIL` variable as shown above.
