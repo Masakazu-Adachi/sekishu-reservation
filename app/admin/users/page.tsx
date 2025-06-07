@@ -71,7 +71,7 @@ export default function UserListPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("この予約を削除してもよろしいですか？")) return;
+    if (!confirm("この予約をキャンセルしてもよろしいですか？")) return;
 
     try {
       const reservationRef = doc(db, "reservations", id);
@@ -88,8 +88,8 @@ export default function UserListPage() {
 
       setReservations(reservations.filter((r) => r.id !== id));
     } catch (error) {
-      console.error("削除エラー:", error);
-      alert("削除に失敗しました");
+      console.error("キャンセルエラー:", error);
+      alert("キャンセルに失敗しました");
     }
   };
 
@@ -240,7 +240,7 @@ export default function UserListPage() {
                       onClick={() => handleDelete(r.id)}
                       className="bg-red-500 text-white px-2 py-1 rounded text-sm"
                     >
-                      削除
+                      予約をキャンセル
                     </button>
                   </>
                 )}
