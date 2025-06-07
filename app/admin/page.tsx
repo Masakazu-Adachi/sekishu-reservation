@@ -24,13 +24,6 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold mb-2">👤 ユーザー一覧</h2>
           <p>ユーザーの管理と閲覧</p>
         </div>
-        <div
-          className="border rounded p-4 shadow hover:bg-gray-50 cursor-pointer"
-          onClick={() => router.push("/admin/hero-image")}
-        >
-          <h2 className="text-xl font-semibold mb-2">🖼 トップ画像設定</h2>
-          <p>ヒーロー画像のURLを変更</p>
-        </div>
       </div>
     </main>
   );
