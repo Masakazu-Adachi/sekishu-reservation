@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ Freeプラン対応の送信設定
-    const from = "onboarding@resend.dev"; // 認証不要な送信元
+    const from = process.env.FROM_EMAIL || "onboarding@resend.dev";
 
     // HTML未指定ならデフォルトに置き換え
     const htmlBody =
