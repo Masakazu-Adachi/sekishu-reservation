@@ -54,7 +54,7 @@ export default function HomePage() {
         <h1 className="text-5xl font-extrabold mt-2">石州流野村派</h1>
         <p className="mt-2 text-xl">お茶席予約サイト</p>
         <Link href="/reservations/confirm">
-          <button className="mt-2 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded">
+          <button className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded">
             予約の確認・変更はこちら
           </button>
         </Link>

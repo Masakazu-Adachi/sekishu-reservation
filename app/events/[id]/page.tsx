@@ -95,6 +95,9 @@ export default function EventDetailPage() {
     await updateSeatReservedCount(event.id);
     await updateParticipantCount(event.id);
 
+    const confirmUrl =
+      "https://sekishuu-nomura-ochakai.sustirel.com/reservations/confirm";
+
     await fetch("/api/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -102,22 +105,27 @@ export default function EventDetailPage() {
         to: email,
         subject: `${event.title} のご予約完了通知`,
         html: `
-          <p>${name}様</p>
-          <p>以下の内容でご予約を承りました。</p>
-          <ul>
-            <li>会場: ${event.venue}</li>
-            <li>日付: ${event.date.toDate().toLocaleDateString("ja-JP")}</li>
-            <li>時間: ${selectedTime}</li>
-            <li>人数: ${guests}名</li>
-          </ul>
-          <p>予約の確認/変更/キャンセルは以下のリンクよりお願いします。</p>
-          <p><a href="/reservations/confirm">/reservations/confirm</a></p>
-          <p>予約内容の確認・変更には下記の情報をご利用ください。</p>
-          <p><strong>予約時メールアドレス:</strong> ${email}<br/>
-          <strong>パスワード:</strong> ${password}</p>
-          <p>合計金額: ${totalCost}円</p>
-          <p>お支払いは以下にお振込みお願いします。</p>
-          <p>XXX銀行<br/>XXX支店<br/>普通 XXXXXXXX<br/>振込期限：X月X日<br/>振込人名義は（申込者様）のお名前にてお願いします。</p>
+
+          <div style="font-family:sans-serif; line-height:1.6;">
+            <p>${name}様</p>
+            <p>以下の内容でご予約を承りました。</p>
+            <ul>
+              <li><strong>会場:</strong> ${event.venue}</li>
+              <li><strong>日付:</strong> ${event.date
+                .toDate()
+                .toLocaleDateString("ja-JP")}</li>
+              <li><strong>時間:</strong> ${selectedTime}</li>
+              <li><strong>人数:</strong> ${guests}名</li>
+            </ul>
+            <p><a href="${confirmUrl}">予約の確認/変更/キャンセルはこちらからお願いします。</a></p>
+            <p>予約内容の確認・変更には下記の情報をご利用ください。</p>
+            <p><strong>予約時メールアドレス:</strong> ${email}<br/>
+            <strong>パスワード:</strong> ${password}</p>
+            <p><strong>合計金額:</strong> ${totalCost}円</p>
+            <p>お支払いは以下にお振込みお願いします。</p>
+            <p>XXX銀行<br/>XXX支店<br/>普通 XXXXXXXX<br/>振込期限：X月X日<br/>振込人名義は（申込者様）のお名前にてお願いします。</p>
+          </div>
+
         `,
       }),
     });
@@ -129,13 +137,23 @@ export default function EventDetailPage() {
         to: "m-adachi@sustirel.com",
         subject: `${event.title} の予約が入りました`,
         html: `
-          <p>${name}様から予約がありました。</p>
-          <ul>
-            <li>時間: ${selectedTime}</li>
-            <li>人数: ${guests}名</li>
-            <li>メール: ${email}</li>
-            <li>自由記述: ${notes || "(なし)"}</li>
-          </ul>
+
+          <div style="font-family:sans-serif; line-height:1.6;">
+            <p>${name}様から予約がありました。</p>
+            <ul>
+              <li><strong>イベント:</strong> ${event.title}</li>
+              <li><strong>会場:</strong> ${event.venue}</li>
+              <li><strong>日付:</strong> ${event.date
+                .toDate()
+                .toLocaleDateString("ja-JP")}</li>
+              <li><strong>時間:</strong> ${selectedTime}</li>
+              <li><strong>人数:</strong> ${guests}名</li>
+              <li><strong>メール:</strong> ${email}</li>
+              <li><strong>合計金額:</strong> ${totalCost}円</li>
+              <li><strong>自由記述:</strong> ${notes || "(なし)"}</li>
+            </ul>
+          </div>
+
         `,
       }),
     });
