@@ -25,6 +25,7 @@ export default function EventDetailPage() {
   const [email, setEmail] = useState("");
   const [guests, setGuests] = useState(1);
   const [selectedTime, setSelectedTime] = useState("");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -78,6 +79,7 @@ export default function EventDetailPage() {
     }
 
     const password = nanoid(8);
+    const totalCost = (event.cost || 0) * guests;
 
     await addDoc(collection(db, "reservations"), {
       name,
@@ -85,6 +87,7 @@ export default function EventDetailPage() {
       guests,
       eventId: event.id,
       seatTime: selectedTime,
+      notes,
       password,
       createdAt: new Date().toISOString(),
     });
@@ -107,9 +110,32 @@ export default function EventDetailPage() {
             <li>時間: ${selectedTime}</li>
             <li>人数: ${guests}名</li>
           </ul>
+          <p>予約の確認/変更/キャンセルは以下のリンクよりお願いします。</p>
+          <p><a href="/reservations/confirm">/reservations/confirm</a></p>
           <p>予約内容の確認・変更には下記の情報をご利用ください。</p>
           <p><strong>予約時メールアドレス:</strong> ${email}<br/>
           <strong>パスワード:</strong> ${password}</p>
+          <p>合計金額: ${totalCost}円</p>
+          <p>お支払いは以下にお振込みお願いします。</p>
+          <p>XXX銀行<br/>XXX支店<br/>普通 XXXXXXXX<br/>振込期限：X月X日<br/>振込人名義は（申込者様）のお名前にてお願いします。</p>
+        `,
+      }),
+    });
+
+    await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: "m-adachi@sustirel.com",
+        subject: `${event.title} の予約が入りました`,
+        html: `
+          <p>${name}様から予約がありました。</p>
+          <ul>
+            <li>時間: ${selectedTime}</li>
+            <li>人数: ${guests}名</li>
+            <li>メール: ${email}</li>
+            <li>自由記述: ${notes || "(なし)"}</li>
+          </ul>
         `,
       }),
     });
@@ -119,6 +145,7 @@ export default function EventDetailPage() {
     setEmail("");
     setGuests(1);
     setSelectedTime("");
+    setNotes("");
   };
 
   if (!event) return <p className="p-6">読み込み中...</p>;
@@ -182,6 +209,19 @@ export default function EventDetailPage() {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block mb-1">
+            自由記述欄：なにか気になることや質問があればご記入ください。
+          </label>
+          <textarea
+            className="border p-2 w-full"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+          <p className="text-sm text-gray-500">
+            *担当者よりメールにてご連絡させていただきます
+          </p>
         </div>
         <button
           type="submit"

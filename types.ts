@@ -36,5 +36,7 @@ export interface Reservation {
   guests: number;
   eventId: string;
   seatTime: string;
+  notes?: string;
   createdAt: string;
+  password?: string;
 }
