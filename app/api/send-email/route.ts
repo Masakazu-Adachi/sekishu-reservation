@@ -3,8 +3,12 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// 送信元アドレスを環境変数から取得（未設定時はResendのデフォルトを使用）
+const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
+
 export async function POST(req: Request) {
   console.log("✅ APIキー:", process.env.RESEND_API_KEY);
+  console.log("✅ 送信元:", FROM_EMAIL);
 
   try {
     const { to, subject, html } = await req.json();
@@ -14,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     // ✅ Freeプラン対応の送信設定
-    const from = process.env.FROM_EMAIL || "onboarding@resend.dev";
+    const from = FROM_EMAIL;
 
     // HTML未指定ならデフォルトに置き換え
     const htmlBody =
