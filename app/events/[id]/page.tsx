@@ -26,6 +26,8 @@ export default function EventDetailPage() {
   const [guests, setGuests] = useState(1);
   const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -39,9 +41,16 @@ export default function EventDetailPage() {
     fetchEvent();
   }, [id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleOpenConfirmation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!event || !selectedTime) return;
+    setShowConfirmation(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!event || !selectedTime) return;
+    setIsSubmitting(true);
+    try {
 
     const seat = (event.seats as Seat[]).find((s) => s.time === selectedTime);
     if (!seat) {
@@ -178,6 +187,10 @@ export default function EventDetailPage() {
     setGuests(1);
     setSelectedTime("");
     setNotes("");
+    } finally {
+    setIsSubmitting(false);
+    setShowConfirmation(false);
+  }
   };
 
   if (!event) return <p className="p-6">読み込み中...</p>;
@@ -189,7 +202,7 @@ export default function EventDetailPage() {
       <p>日付: {event.date.toDate().toLocaleDateString("ja-JP")}</p>
       <p className="mb-4">説明: {event.description}</p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleOpenConfirmation} className="space-y-4">
         <div>
           <label className="block mb-1">お名前</label>
           <input
@@ -262,6 +275,39 @@ export default function EventDetailPage() {
           予約する
         </button>
       </form>
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded space-y-4 text-lg max-w-sm w-full">
+            <h2 className="text-xl font-bold">ご予約内容の確認</h2>
+            <p>会場: {event?.venue}</p>
+            <p>日付: {event?.date.toDate().toLocaleDateString("ja-JP")}</p>
+            <p>時間: {selectedTime}</p>
+            <p>人数: {guests}名</p>
+            <p>合計金額: {(event?.cost || 0) * guests}円</p>
+            <div className="flex gap-4 pt-2">
+              <button
+                type="button"
+                className="bg-gray-500 text-white px-4 py-2 rounded flex-1"
+                onClick={() => setShowConfirmation(false)}
+              >
+                戻る（修正する）
+              </button>
+              <button
+                type="button"
+                className="bg-blue-600 text-white px-4 py-2 rounded flex-1"
+                onClick={handleSubmit}
+              >
+                この内容で予約する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {isSubmitting && (
+        <div className="fixed inset-0 flex items-center justify-center bg-white bg-opacity-75 text-2xl z-50">
+          予約手続き中...
+        </div>
+      )}
     </main>
   );
 }
