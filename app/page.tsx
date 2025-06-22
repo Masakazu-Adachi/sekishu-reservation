@@ -56,8 +56,8 @@ export default function HomePage() {
       </section>
 
       {/* イベント一覧セクション */}
-      <section className="py-10 max-w-5xl mx-auto px-4">
-        <h3 className="text-xl font-bold text-center mb-6">お茶会のご案内</h3>
+      <section className="py-10 max-w-5xl mx-auto px-4 bg-amber-50 border-b-4 border-amber-500 rounded">
+        <h3 className="text-lg font-semibold text-amber-700 text-center mb-6">お茶会のご案内</h3>
         <div className="space-y-8">
           {events.map((event) => (
             <div
