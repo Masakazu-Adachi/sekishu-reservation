@@ -62,7 +62,7 @@ export default function HomePage() {
           {events.map((event) => (
             <div
               key={event.id}
-              className="flex flex-col md:flex-row justify-between border-b pb-6 gap-4"
+              className="flex flex-col md:flex-row justify-between gap-4 p-4 border rounded-lg shadow-md bg-white"
             >
               <div className="flex-1">
                 <h4 className="text-lg font-semibold mb-1">{event.title}</h4>
@@ -96,10 +96,12 @@ export default function HomePage() {
       </section>
 
       {/* 予約確認へのリンク */}
-      <section className="py-6 bg-gray-100 text-center px-4">
-        <p className="mb-2 font-semibold">すでに予約済みの方はこちら</p>
+      <section className="py-8 bg-amber-50 border-t-4 border-amber-500 text-center px-4 mt-8">
+        <p className="mb-4 text-lg font-semibold text-amber-700">
+          すでに予約済みの方はこちら
+        </p>
         <Link href="/reservations/confirm">
-          <button className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded">
+          <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
             予約の確認・変更はこちら
           </button>
         </Link>

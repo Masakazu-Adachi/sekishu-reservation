@@ -147,7 +147,7 @@ export default function UserListPage() {
       </Link>
       <h1 className="text-2xl font-bold mb-4">全ユーザー予約一覧</h1>
 
-      <table className="w-full border text-sm">
+      <table className="w-full border text-sm shadow-md bg-white">
         <thead>
           <tr className="bg-gray-100">
             <th className="border px-2 py-1">名前</th>

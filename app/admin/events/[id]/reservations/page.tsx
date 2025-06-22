@@ -119,7 +119,7 @@ export default function EventReservationsPage() {
           {reservations.map((res) => (
             <li
               key={res.id}
-              className="border p-4 rounded shadow-sm flex flex-col gap-2"
+              className="border p-4 rounded shadow-md bg-white flex flex-col gap-2"
             >
               {editingId === res.id ? (
                 <div className="space-y-2">
