@@ -97,13 +97,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 予約確認へのリンク */}
-      <section className="py-8 bg-amber-50 border-t-4 border-amber-500 text-center px-4 mt-8">
+      {/* 予約確認セクション */}
+      <section className="py-8 bg-amber-50 border-t-4 border-amber-500 text-center px-4 mt-8 max-w-5xl mx-auto">
         <p className="mb-4 text-lg font-semibold text-amber-700">
           すでに予約済みの方はこちら
         </p>
         <Link href="/reservations/confirm">
-          <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
+          <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow transition-colors">
             予約の確認・変更はこちら
           </button>
         </Link>
