@@ -94,7 +94,7 @@ export default function ReservationConfirmPage() {
   return (
     <main className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">予約確認・編集</h1>
-      <div className="space-y-2 mb-6">
+      <div className="space-y-2 mb-6 p-4 bg-gray-50 border rounded shadow">
         <input
           type="email"
           placeholder="メールアドレス"
@@ -120,7 +120,7 @@ export default function ReservationConfirmPage() {
       {loading && <p>検索中...</p>}
 
       {reservations.map((r) => (
-        <div key={r.id} className="border p-4 mb-4">
+        <div key={r.id} className="border rounded p-4 mb-4 shadow">
           <p>イベントID: {r.eventId}</p>
           <p>時間枠: {r.seatTime || "時間指定なし"}</p>
           <p>人数: {r.guests}</p>
@@ -138,7 +138,7 @@ export default function ReservationConfirmPage() {
                 )
               )
             }
-            className="border p-1 my-2"
+            className="border p-1 my-2 rounded w-full"
           />
           <input
             type="text"
@@ -153,7 +153,7 @@ export default function ReservationConfirmPage() {
               )
             }
             placeholder="住所（任意）"
-            className="border p-1 my-2 w-full"
+            className="border p-1 my-2 rounded w-full"
           />
           <button
             className="bg-green-600 text-white px-3 py-1 mr-2 rounded"

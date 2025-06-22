@@ -53,7 +53,7 @@ export default function AdminEventsPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {events.map((event) => (
-          <div key={event.id} className="border rounded p-4 shadow">
+          <div key={event.id} className="border rounded p-4 shadow-md bg-white">
             <h2 className="text-xl font-semibold mb-2">{event.title}</h2>
             <p className="text-gray-600 mb-1">
               📅{" "}
