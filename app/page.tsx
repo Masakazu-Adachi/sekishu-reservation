@@ -64,7 +64,7 @@ export default function HomePage() {
           {events.map((event) => (
             <div
               key={event.id}
-              className="flex flex-col md:flex-row items-center gap-6 p-6 border rounded-lg shadow-lg bg-white"
+              className="flex flex-col md:flex-row items-center gap-6 p-6 border rounded-lg shadow-lg bg-white hover:shadow-xl transition-shadow"
             >
               <div className="flex-1">
                 <h4 className="text-xl font-bold mb-2">{event.title}</h4>
@@ -74,15 +74,15 @@ export default function HomePage() {
                 <p className="mb-3 font-semibold">
                   参加人数: <span className="font-normal">{event.participants}/{event.capacity}人</span>
                 </p>
-                <p className="mb-3">{event.description}</p>
+                <p className="mb-4">{event.description}</p>
                 <Link href={`/events/${event.id}`}>
-                  <button className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded shadow transition-colors">
+                  <button className="w-32 mx-auto block bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded shadow transition-colors">
                     予約する
                   </button>
                 </Link>
               </div>
               <div className="w-full md:w-1/3">
-                <div className="relative w-full h-48 md:h-full rounded overflow-hidden">
+                <div className="relative w-full h-48 md:h-64 rounded overflow-hidden">
                   <Image
                     src={event.imageUrl}
                     alt={event.title}
