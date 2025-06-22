@@ -19,13 +19,14 @@ import {
 import type { Seat } from "@/types";
 
 
-const timeOptions = Array.from({ length: 22 }, (_, i) => {
-  const hour = Math.floor(i / 2) + 8;
-  const minute = i % 2 === 0 ? "00" : "30";
-  return `${String(hour).padStart(2, "0")}:${minute}`;
-});
+const hourOptions = Array.from({ length: 24 }, (_, i) =>
+  String(i).padStart(2, "0")
+);
+const minuteOptions = ["00", "10", "20", "30", "40", "50"];
+const TENTATIVE_LABEL = "仮予約";
 
 const capacityOptions = Array.from({ length: 200 }, (_, i) => i + 1);
+const costOptions = Array.from({ length: 101 }, (_, i) => i * 100);
 
 interface EventForm {
   title: string;
@@ -77,12 +78,22 @@ export default function EditEventPage() {
     const { name, value } = e.target;
     if (typeof index === "number") {
       const updatedSeats = [...form.seats];
-      if (name === "time" || name === "capacity") {
-        updatedSeats[index] = {
-          ...updatedSeats[index],
-          [name]: name === "capacity" ? Number(value) : value,
-        };
+      const seat = { ...updatedSeats[index] };
+      if (name === "seatType") {
+        seat.time = value === "tentative" ? TENTATIVE_LABEL : "08:00";
       }
+      if (name === "hour") {
+        const minute = seat.time.includes(":") ? seat.time.split(":")[1] : "00";
+        seat.time = `${value}:${minute}`;
+      }
+      if (name === "minute") {
+        const hour = seat.time.includes(":") ? seat.time.split(":")[0] : "08";
+        seat.time = `${hour}:${value}`;
+      }
+      if (name === "capacity") {
+        seat.capacity = Number(value);
+      }
+      updatedSeats[index] = seat;
       setForm({ ...form, seats: updatedSeats });
     } else {
       setForm({ ...form, [name]: name === "cost" ? Number(value) : value });
@@ -90,7 +101,10 @@ export default function EditEventPage() {
   };
 
   const addSeat = () => {
-    setForm({ ...form, seats: [...form.seats, { time: "", capacity: 1, reserved: 0 }] });
+    setForm({
+      ...form,
+      seats: [...form.seats, { time: "08:00", capacity: 1, reserved: 0 }],
+    });
   };
 
   const removeSeat = (index: number) => {
@@ -184,17 +198,19 @@ export default function EditEventPage() {
         </div>
         <div>
           <label className="block mb-1">会費 (円)</label>
-          <input
-            type="number"
+          <select
             name="cost"
             value={form.cost}
             onChange={handleChange}
-            placeholder="0"
-            min="0"
-            step="100"
             className="border p-2 w-full"
             required
-          />
+          >
+            {costOptions.map((c) => (
+              <option key={c} value={c}>
+                {c}円
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block mb-1">備考</label>
@@ -211,45 +227,72 @@ export default function EditEventPage() {
 
         <div className="space-y-2">
           <p className="font-semibold">時間枠と定員（複数設定可）</p>
-          {form.seats.map((seat, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <select
-                name="time"
-                value={seat.time}
-                onChange={(e) => handleChange(e, i)}
-                className="border p-2 w-full"
-                required
-              >
-                <option value="">開始時間を選択</option>
-                {timeOptions.map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-              <select
-                name="capacity"
-                value={seat.capacity}
-                onChange={(e) => handleChange(e, i)}
-                className="border p-2 w-full"
-                required
-              >
-                <option value="">定員を選択</option>
-                {capacityOptions.map((num) => (
-                  <option key={num} value={num}>
-                    {num}名
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => removeSeat(i)}
-                className="text-red-500 text-sm"
-              >
-                削除
-              </button>
-            </div>
-          ))}
+          {form.seats.map((seat, i) => {
+            const [h, m] = seat.time.includes(":") ? seat.time.split(":") : ["08", "00"];
+            const seatType = seat.time === TENTATIVE_LABEL ? "tentative" : "time";
+            return (
+              <div key={i} className="flex gap-2 items-center">
+                <select
+                  name="seatType"
+                  value={seatType}
+                  onChange={(e) => handleChange(e, i)}
+                  className="border p-2"
+                >
+                  <option value="time">時間指定</option>
+                  <option value="tentative">仮予約</option>
+                </select>
+                {seatType === "time" && (
+                  <>
+                    <select
+                      name="hour"
+                      value={h}
+                      onChange={(e) => handleChange(e, i)}
+                      className="border p-2"
+                    >
+                      {hourOptions.map((hr) => (
+                        <option key={hr} value={hr}>
+                          {hr}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      name="minute"
+                      value={m}
+                      onChange={(e) => handleChange(e, i)}
+                      className="border p-2"
+                    >
+                      {minuteOptions.map((mi) => (
+                        <option key={mi} value={mi}>
+                          {mi}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+                <select
+                  name="capacity"
+                  value={seat.capacity}
+                  onChange={(e) => handleChange(e, i)}
+                  className="border p-2 w-full"
+                  required
+                >
+                  <option value="">定員を選択</option>
+                  {capacityOptions.map((num) => (
+                    <option key={num} value={num}>
+                      {num}名
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => removeSeat(i)}
+                  className="text-red-500 text-sm"
+                >
+                  削除
+                </button>
+              </div>
+            );
+          })}
           <button
             type="button"
             onClick={addSeat}
