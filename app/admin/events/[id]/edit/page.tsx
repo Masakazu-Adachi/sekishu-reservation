@@ -23,7 +23,7 @@ const timeOptions = Array.from({ length: 22 }, (_, i) => {
   return `${String(hour).padStart(2, "0")}:${minute}`;
 });
 
-const capacityOptions = Array.from({ length: 30 }, (_, i) => i + 1);
+const capacityOptions = Array.from({ length: 200 }, (_, i) => i + 1);
 
 export default function EditEventPage() {
   const params = useParams();
@@ -35,7 +35,7 @@ export default function EditEventPage() {
     date: "",
     cost: 0,
     description: "",
-    seats: [{ time: "", capacity: 1, reserved: 0 }],
+    seats: [],
   });
   const router = useRouter();
 

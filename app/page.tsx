@@ -53,11 +53,6 @@ export default function HomePage() {
       >
         <h1 className="text-5xl font-extrabold mt-2">石州流野村派</h1>
         <p className="mt-2 text-xl">お茶席予約サイト</p>
-        <Link href="/reservations/confirm">
-          <button className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded">
-            予約の確認・変更はこちら
-          </button>
-        </Link>
       </section>
 
       {/* イベント一覧セクション */}
@@ -98,6 +93,16 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* 予約確認へのリンク */}
+      <section className="py-6 bg-gray-100 text-center px-4">
+        <p className="mb-2 font-semibold">すでに予約済みの方はこちら</p>
+        <Link href="/reservations/confirm">
+          <button className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded">
+            予約の確認・変更はこちら
+          </button>
+        </Link>
       </section>
     </main>
   );
