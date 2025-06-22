@@ -24,7 +24,12 @@ export default function EventReservationsPage() {
   const eventId = params?.id as string;
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", guests: 1, seatTime: "" });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    guests: 1,
+    seatTime: "",
+    address: "",
+  });
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   useEffect(() => {
@@ -96,7 +101,7 @@ export default function EventReservationsPage() {
     await updateSeatReservedCount(eventId);
     alert("予約を更新しました");
     setEditingId(null);
-    setEditForm({ name: "", guests: 1, seatTime: "" });
+    setEditForm({ name: "", guests: 1, seatTime: "", address: "" });
 
     const snapshot = await getDocs(collection(db, "reservations"));
     const refreshed = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Reservation[];
@@ -145,6 +150,15 @@ export default function EventReservationsPage() {
                       </option>
                     ))}
                   </select>
+                  <input
+                    type="text"
+                    value={editForm.address}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, address: e.target.value })
+                    }
+                    className="border p-2 w-full"
+                    placeholder="住所(任意)"
+                  />
                   <div className="flex gap-2">
                     <button
                       onClick={handleEditSubmit}
@@ -167,12 +181,20 @@ export default function EventReservationsPage() {
                       👤 {res.name}（{res.guests}名）
                     </p>
                     <p className="text-sm text-gray-500">時間枠: {res.seatTime}</p>
+                    <p className="text-sm text-gray-500">
+                      住所: {res.address || "(未入力)"}
+                    </p>
                   </div>
                   <div className="flex gap-2 mt-2 sm:mt-0">
                     <button
                       onClick={() => {
                         setEditingId(res.id);
-                        setEditForm({ name: res.name, guests: res.guests, seatTime: res.seatTime });
+                        setEditForm({
+                          name: res.name,
+                          guests: res.guests,
+                          seatTime: res.seatTime,
+                          address: res.address || "",
+                        });
                       }}
                       className="px-3 py-1 text-sm bg-yellow-400 text-white rounded"
                     >

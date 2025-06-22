@@ -21,6 +21,7 @@ interface Reservation {
   id: string;
   name: string;
   email: string;
+  address?: string;
   guests: number;
   eventId: string;
   seatTime: string;
@@ -33,7 +34,13 @@ export default function UserListPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [eventTitles, setEventTitles] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", guests: 1, seatTime: "" });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    address: "",
+    guests: 1,
+    seatTime: "",
+  });
   const [eventSeatTimes, setEventSeatTimes] = useState<Record<string, string[]>>({});
   const [eventSeatMap, setEventSeatMap] = useState<Record<string, Seat[]>>({});
 
@@ -127,7 +134,7 @@ export default function UserListPage() {
     await updateParticipantCount(eventId);
     await updateSeatReservedCount(eventId);
     setEditingId(null);
-    setEditForm({ name: "", email: "", guests: 1, seatTime: "" });
+    setEditForm({ name: "", email: "", address: "", guests: 1, seatTime: "" });
     const updated = await getDocs(collection(db, "reservations"));
     const dataUpdated = updated.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Reservation[];
     setReservations(dataUpdated);
@@ -145,6 +152,7 @@ export default function UserListPage() {
           <tr className="bg-gray-100">
             <th className="border px-2 py-1">名前</th>
             <th className="border px-2 py-1">メールアドレス</th>
+            <th className="border px-2 py-1">住所</th>
             <th className="border px-2 py-1">人数</th>
             <th className="border px-2 py-1">イベント名</th>
             <th className="border px-2 py-1">時間枠</th>
@@ -175,6 +183,17 @@ export default function UserListPage() {
                   />
                 ) : (
                   r.email
+                )}
+              </td>
+              <td className="border px-2 py-1">
+                {editingId === r.id ? (
+                  <input
+                    className="border p-1 w-full"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  />
+                ) : (
+                  r.address || ""
                 )}
               </td>
               <td className="border px-2 py-1">
@@ -230,7 +249,13 @@ export default function UserListPage() {
                     <button
                       onClick={() => {
                         setEditingId(r.id);
-                        setEditForm({ name: r.name, email: r.email, guests: r.guests, seatTime: r.seatTime });
+                        setEditForm({
+                          name: r.name,
+                          email: r.email,
+                          address: r.address || "",
+                          guests: r.guests,
+                          seatTime: r.seatTime,
+                        });
                       }}
                       className="bg-yellow-400 text-white px-2 py-1 rounded text-sm"
                     >
