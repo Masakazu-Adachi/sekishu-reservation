@@ -40,7 +40,7 @@ export default function ReservationConfirmPage() {
 
   const updateReservation = async (
     id: string,
-    updatedData: { eventId: string; guests: number }
+    updatedData: { eventId: string; guests: number; address?: string }
   ) => {
     const reservationRef = doc(db, "reservations", id);
     const reservationSnap = await getDoc(reservationRef);
@@ -122,8 +122,9 @@ export default function ReservationConfirmPage() {
       {reservations.map((r) => (
         <div key={r.id} className="border p-4 mb-4">
           <p>イベントID: {r.eventId}</p>
-          <p>時間枠: {r.seatTime}</p>
+          <p>時間枠: {r.seatTime || "時間指定なし"}</p>
           <p>人数: {r.guests}</p>
+          <p>住所: {r.address || "(未入力)"}</p>
           <input
             type="number"
             min={1}
@@ -139,12 +140,28 @@ export default function ReservationConfirmPage() {
             }
             className="border p-1 my-2"
           />
+          <input
+            type="text"
+            value={r.address || ""}
+            onChange={(e) =>
+              setReservations((prev) =>
+                prev.map((item) =>
+                  item.id === r.id
+                    ? { ...item, address: e.target.value }
+                    : item
+                )
+              )
+            }
+            placeholder="住所（任意）"
+            className="border p-1 my-2 w-full"
+          />
           <button
             className="bg-green-600 text-white px-3 py-1 mr-2 rounded"
             onClick={() =>
               updateReservation(r.id, {
                 guests: r.guests,
                 eventId: r.eventId,
+                address: r.address,
               })
             }
           >

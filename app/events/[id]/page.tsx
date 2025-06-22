@@ -23,6 +23,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [guests, setGuests] = useState(1);
   const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -43,36 +44,40 @@ export default function EventDetailPage() {
 
   const handleOpenConfirmation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!event || !selectedTime) return;
+    if (!event) return;
+    if ((event.seats?.length || 0) > 0 && !selectedTime) return;
     setShowConfirmation(true);
   };
 
   const handleSubmit = async () => {
-    if (!event || !selectedTime) return;
+    if (!event) return;
+    if ((event.seats?.length || 0) > 0 && !selectedTime) return;
     setIsSubmitting(true);
     try {
 
     const seat = (event.seats as Seat[]).find((s) => s.time === selectedTime);
-    if (!seat) {
-      alert("選択された時間枠が無効です");
-      return;
-    }
+    if (event.seats && event.seats.length > 0) {
+      if (!seat) {
+        alert("選択された時間枠が無効です");
+        return;
+      }
 
-    const reservationSnapshot = await getDocs(
-      query(
-        collection(db, "reservations"),
-        where("eventId", "==", event.id),
-        where("seatTime", "==", selectedTime)
-      )
-    );
-    const reservedCount = reservationSnapshot.docs.reduce(
-      (total, doc) => total + (doc.data().guests || 0),
-      0
-    );
+      const reservationSnapshot = await getDocs(
+        query(
+          collection(db, "reservations"),
+          where("eventId", "==", event.id),
+          where("seatTime", "==", selectedTime)
+        )
+      );
+      const reservedCount = reservationSnapshot.docs.reduce(
+        (total, doc) => total + (doc.data().guests || 0),
+        0
+      );
 
-    if (reservedCount + guests > seat.capacity) {
-      alert(`定員(${seat.capacity}名)を超えています。現在の合計: ${reservedCount + guests}名`);
-      return;
+      if (reservedCount + guests > seat.capacity) {
+        alert(`定員(${seat.capacity}名)を超えています。現在の合計: ${reservedCount + guests}名`);
+        return;
+      }
     }
 
     const duplicateCheck = await getDocs(
@@ -93,9 +98,10 @@ export default function EventDetailPage() {
     await addDoc(collection(db, "reservations"), {
       name,
       email,
+      address,
       guests,
       eventId: event.id,
-      seatTime: selectedTime,
+      seatTime: selectedTime || "",
       notes,
       password,
       createdAt: new Date().toISOString(),
@@ -126,7 +132,7 @@ export default function EventDetailPage() {
               <p><strong>日付：</strong>${event.date
                 .toDate()
                 .toLocaleDateString('ja-JP')}</p>
-              <p><strong>時間：</strong>${selectedTime}</p>
+              <p><strong>時間：</strong>${selectedTime || "時間指定なし"}</p>
               <p><strong>人数：</strong>${guests}名</p>
             </div>
             <hr/>
@@ -157,10 +163,14 @@ export default function EventDetailPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: "m-adachi@sustirel.com",
+        to: [
+          "m-adachi@sustirel.com",
+          "kandatoshi1@gmail.com",
+          "linkshori@gmail.com",
+        ],
         subject: `${event.title} の予約が入りました`,
         html: `
-
+          
           <div style="font-family:sans-serif; line-height:1.6;">
             <p>${name}様から予約がありました。</p>
             <ul>
@@ -169,9 +179,10 @@ export default function EventDetailPage() {
               <li><strong>日付:</strong> ${event.date
                 .toDate()
                 .toLocaleDateString("ja-JP")}</li>
-              <li><strong>時間:</strong> ${selectedTime}</li>
+              <li><strong>時間:</strong> ${selectedTime || "時間指定なし"}</li>
               <li><strong>人数:</strong> ${guests}名</li>
               <li><strong>メール:</strong> ${email}</li>
+              <li><strong>住所:</strong> ${address || "(未入力)"}</li>
               <li><strong>合計金額:</strong> ${totalCost}円</li>
               <li><strong>自由記述:</strong> ${notes || "(なし)"}</li>
             </ul>
@@ -184,6 +195,7 @@ export default function EventDetailPage() {
     alert("予約が完了しました！確認メールをご確認ください。");
     setName("");
     setEmail("");
+    setAddress("");
     setGuests(1);
     setSelectedTime("");
     setNotes("");
@@ -224,37 +236,51 @@ export default function EventDetailPage() {
           />
         </div>
         <div>
-          <label className="block mb-1">参加人数</label>
+          <label className="block mb-1">住所（任意）</label>
           <input
-            type="number"
+            type="text"
             className="border p-2 w-full"
-            value={guests}
-            min={1}
-            max={10}
-            onChange={(e) => setGuests(Number(e.target.value))}
-            required
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
           />
         </div>
         <div>
-          <label className="block mb-1">時間枠選択</label>
+          <label className="block mb-1">参加人数</label>
           <select
             className="border p-2 w-full"
-            value={selectedTime}
-            onChange={(e) => setSelectedTime(e.target.value)}
+            value={guests}
+            onChange={(e) => setGuests(Number(e.target.value))}
             required
           >
-            <option value="">時間を選択</option>
-            {(event.seats as Seat[]).map((seat) => (
-              <option
-                key={seat.time}
-                value={seat.time}
-                disabled={(seat.reserved || 0) >= seat.capacity}
-              >
-                {seat.time}（残り {seat.capacity - (seat.reserved || 0)} 名）
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+              <option key={num} value={num}>
+                {num}名
               </option>
             ))}
           </select>
         </div>
+        {event.seats && event.seats.length > 0 && (
+          <div>
+            <label className="block mb-1">時間枠選択</label>
+            <select
+              className="border p-2 w-full"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              required
+            >
+              <option value="">時間を選択</option>
+              {(event.seats as Seat[]).map((seat) => (
+                <option
+                  key={seat.time}
+                  value={seat.time}
+                  disabled={(seat.reserved || 0) >= seat.capacity}
+                >
+                  {seat.time}（残り {seat.capacity - (seat.reserved || 0)} 名）
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label className="block mb-1">
             自由記述欄：なにか気になることや質問があればご記入ください。
@@ -281,7 +307,10 @@ export default function EventDetailPage() {
             <h2 className="text-xl font-bold">ご予約内容の確認</h2>
             <p>会場: {event?.venue}</p>
             <p>日付: {event?.date.toDate().toLocaleDateString("ja-JP")}</p>
-            <p>時間: {selectedTime}</p>
+            {event?.seats && event.seats.length > 0 && (
+              <p>時間: {selectedTime}</p>
+            )}
+            {address && <p>住所: {address}</p>}
             <p>人数: {guests}名</p>
             <p>合計金額: {(event?.cost || 0) * guests}円</p>
             <div className="flex gap-4 pt-2">
