@@ -16,6 +16,8 @@ import {
   addDoc,
 } from "firebase/firestore";
 
+import type { Seat } from "@/types";
+
 
 const timeOptions = Array.from({ length: 22 }, (_, i) => {
   const hour = Math.floor(i / 2) + 8;
@@ -25,11 +27,20 @@ const timeOptions = Array.from({ length: 22 }, (_, i) => {
 
 const capacityOptions = Array.from({ length: 200 }, (_, i) => i + 1);
 
+interface EventForm {
+  title: string;
+  venue: string;
+  date: string;
+  cost: number;
+  description: string;
+  seats: Seat[];
+}
+
 export default function EditEventPage() {
   const params = useParams();
   const eventId = params.id as string;
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<EventForm>({
     title: "",
     venue: "",
     date: "",
