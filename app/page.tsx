@@ -48,39 +48,41 @@ export default function HomePage() {
     <main>
       {/* ヒーローセクション */}
       <section
-        className="bg-cover bg-center h-96 text-white flex flex-col justify-center items-center"
+        className="bg-cover bg-center min-h-[500px] sm:min-h-[600px] text-white flex flex-col justify-center items-center px-4"
         style={{ backgroundImage: `url('${heroImageUrl}')` }}
       >
-        <h1 className="text-5xl font-extrabold mt-2">石州流野村派</h1>
-        <p className="mt-2 text-xl">お茶席予約サイト</p>
+        <h1 className="text-5xl sm:text-6xl font-extrabold mb-4 drop-shadow-md">
+          石州流野村派
+        </h1>
+        <p className="text-xl sm:text-2xl drop-shadow">お茶席予約サイト</p>
       </section>
 
       {/* イベント一覧セクション */}
-      <section className="py-10 max-w-5xl mx-auto px-4 bg-amber-50 border-b-4 border-amber-500 rounded">
+      <section className="py-12 mb-8 max-w-5xl mx-auto px-4 bg-amber-50 border-b-4 border-amber-500 rounded">
         <h3 className="text-lg font-semibold text-amber-700 text-center mb-6">お茶会のご案内</h3>
         <div className="space-y-8">
           {events.map((event) => (
             <div
               key={event.id}
-              className="flex flex-col md:flex-row justify-between gap-4 p-4 border rounded-lg shadow-md bg-white"
+              className="flex flex-col md:flex-row items-center gap-6 p-6 border rounded-lg shadow-lg bg-white"
             >
               <div className="flex-1">
-                <h4 className="text-lg font-semibold mb-1">{event.title}</h4>
-                <p>会場: {event.venue}</p>
-                <p>日時: {event.date}</p>
-                <p>参加費用: {event.cost}円</p>
-                <p>
-                  参加人数: {event.participants}/{event.capacity}人
+                <h4 className="text-xl font-bold mb-2">{event.title}</h4>
+                <p className="mb-1 font-semibold">会場: <span className="font-normal">{event.venue}</span></p>
+                <p className="mb-1 font-semibold">日時: <span className="font-normal">{event.date}</span></p>
+                <p className="mb-1 font-semibold">参加費用: <span className="font-normal">{event.cost}円</span></p>
+                <p className="mb-3 font-semibold">
+                  参加人数: <span className="font-normal">{event.participants}/{event.capacity}人</span>
                 </p>
-                <p>{event.description}</p>
+                <p className="mb-3">{event.description}</p>
                 <Link href={`/events/${event.id}`}>
-                  <button className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-3 rounded text-sm">
+                  <button className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded shadow transition-colors">
                     予約する
                   </button>
                 </Link>
               </div>
               <div className="w-full md:w-1/3">
-                <div className="relative w-full aspect-video rounded overflow-hidden">
+                <div className="relative w-full h-48 md:h-full rounded overflow-hidden">
                   <Image
                     src={event.imageUrl}
                     alt={event.title}
