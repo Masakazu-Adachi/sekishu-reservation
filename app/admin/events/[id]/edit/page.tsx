@@ -136,52 +136,67 @@ export default function EditEventPage() {
     <main className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">イベント 作成/編集</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="title"
-          value={form.title}
-          onChange={handleChange}
-          placeholder="イベント名"
-          className="border p-2 w-full"
-          required
-        />
-        <input
-          type="text"
-          name="venue"
-          value={form.venue}
-          onChange={handleChange}
-          placeholder="会場"
-          className="border p-2 w-full"
-          required
-        />
-        <input
-          type="date"
-          name="date"
-          value={form.date}
-          onChange={handleChange}
-          className="border p-2 w-full"
-          required
-        />
-        <input
-          type="number"
-          name="cost"
-          value={form.cost}
-          onChange={handleChange}
-          placeholder="参加費用（円）"
-          min="0"
-          step="100"
-          className="border p-2 w-full"
-          required
-        />
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          placeholder="概要説明"
-          className="border p-2 w-full"
-          rows={3}
-          required
-        />
+        <div>
+          <label className="block mb-1">お茶会名</label>
+          <input
+            type="text"
+            name="title"
+            value={form.title}
+            onChange={handleChange}
+            placeholder="例：春のお茶会"
+            className="border p-2 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1">会場</label>
+          <input
+            type="text"
+            name="venue"
+            value={form.venue}
+            onChange={handleChange}
+            placeholder="例：東京会場"
+            className="border p-2 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1">日付</label>
+          <input
+            type="date"
+            name="date"
+            value={form.date}
+            onChange={handleChange}
+            className="border p-2 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1">会費 (円)</label>
+          <input
+            type="number"
+            name="cost"
+            value={form.cost}
+            onChange={handleChange}
+            placeholder="0"
+            min="0"
+            step="100"
+            className="border p-2 w-full"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1">備考</label>
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            placeholder="補足情報や説明を入力してください"
+            className="border p-2 w-full"
+            rows={3}
+            required
+          />
+        </div>
 
         <div className="space-y-2">
           <p className="font-semibold">時間枠と定員（複数設定可）</p>
