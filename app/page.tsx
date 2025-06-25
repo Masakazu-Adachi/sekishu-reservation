@@ -14,31 +14,46 @@ export default function HomePage() {
   useEffect(() => {
     const fetchEvents = async () => {
       const snapshot = await getDocs(collection(db, "events"));
-      const data = snapshot.docs.map((doc) => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          title: d.title,
-          venue: d.venue,
-          date: d.date?.toDate().toLocaleDateString("ja-JP", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            weekday: "short",
-          }),
-          cost: d.cost,
-          description: d.description,
-          participants: (d.seats as Seat[] | undefined)?.reduce(
-            (sum: number, seat) => sum + (seat.reserved || 0),
-            0
-          ),
-          capacity: (d.seats as Seat[] | undefined)?.reduce(
-            (sum: number, seat) => sum + (seat.capacity || 0),
-            0
-          ),
-          imageUrl: d.imageUrl || "/event1.jpg",
-        } as EventSummary;
-      });
+      const data = snapshot.docs
+        .map((doc) => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            title: d.title,
+            venue: d.venue,
+            rawDate: d.date?.toDate() as Date,
+            cost: d.cost,
+            description: d.description,
+            participants: (d.seats as Seat[] | undefined)?.reduce(
+              (sum: number, seat) => sum + (seat.reserved || 0),
+              0
+            ),
+            capacity: (d.seats as Seat[] | undefined)?.reduce(
+              (sum: number, seat) => sum + (seat.capacity || 0),
+              0
+            ),
+            imageUrl: d.imageUrl || "/event1.jpg",
+          };
+        })
+        .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
+        .map((ev) => {
+          return {
+            id: ev.id,
+            title: ev.title,
+            venue: ev.venue,
+            date: ev.rawDate.toLocaleDateString("ja-JP", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              weekday: "short",
+            }),
+            cost: ev.cost,
+            description: ev.description,
+            participants: ev.participants,
+            capacity: ev.capacity,
+            imageUrl: ev.imageUrl,
+          } as EventSummary;
+        });
       setEvents(data);
     };
     fetchEvents();

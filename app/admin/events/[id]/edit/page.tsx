@@ -100,10 +100,20 @@ export default function EditEventPage() {
     }
   };
 
+  const sortSeats = (seats: Seat[]) =>
+    [...seats].sort((a, b) => {
+      if (a.time === TENTATIVE_LABEL) return 1;
+      if (b.time === TENTATIVE_LABEL) return -1;
+      return a.time.localeCompare(b.time);
+    });
+
   const addSeat = () => {
     setForm({
       ...form,
-      seats: [...form.seats, { time: "08:00", capacity: 1, reserved: 0 }],
+      seats: sortSeats([
+        ...form.seats,
+        { time: "08:00", capacity: 1, reserved: 0 },
+      ]),
     });
   };
 
