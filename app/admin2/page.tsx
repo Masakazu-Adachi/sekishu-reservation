@@ -12,17 +12,10 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div
           className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
-          onClick={() => router.push("/admin2/events")}
+          onClick={() => router.push("/admin2/top-image")}
         >
-          <h2 className="text-xl font-semibold mb-2">📅 イベント一覧</h2>
-          <p>イベントの管理と閲覧</p>
-        </div>
-        <div
-          className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
-          onClick={() => router.push("/admin2/users")}
-        >
-          <h2 className="text-xl font-semibold mb-2">👤 ユーザー一覧</h2>
-          <p>ユーザーの管理と閲覧</p>
+          <h2 className="text-xl font-semibold mb-2">🖼 トップ画像設定</h2>
+          <p>サイトのトップページに表示する画像を設定します</p>
         </div>
       </div>
     </main>
