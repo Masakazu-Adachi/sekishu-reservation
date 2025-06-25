@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname.startsWith('/admin2')
+  ) {
     const basicAuth = request.headers.get('authorization')
     const validUser = process.env.ADMIN_USER || 'sekishuu'
     const validPass = process.env.ADMIN_PASS || '16731227'
@@ -29,5 +32,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/admin2/:path*'],
 }
