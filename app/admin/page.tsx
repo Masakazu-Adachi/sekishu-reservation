@@ -26,9 +26,9 @@ export default function AdminDashboard() {
         </div>
         <div
           className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
-          onClick={() => router.push("/admin/hero-image")}
+          onClick={() => router.push("/admin/top-image")}
         >
-          <h2 className="text-xl font-semibold mb-2">🖼️ ヒーロー画像設定</h2>
+          <h2 className="text-xl font-semibold mb-2">🖼️ トップページ画像設定</h2>
           <p>トップページ画像の変更</p>
         </div>
       </div>
