@@ -9,14 +9,14 @@ import type { EventSummary, Seat } from "@/types";
 
 export default function HomePage() {
   const [events, setEvents] = useState<EventSummary[]>([]);
-  const [heroImageUrl, setHeroImageUrl] = useState("/hero-matcha.png");
+  const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
 
   useEffect(() => {
-    const fetchHeroImage = async () => {
+    const fetchTopImage = async () => {
       const ref = doc(db, "settings", "site");
       const snap = await getDoc(ref);
       if (snap.exists() && snap.data().heroImageUrl) {
-        setHeroImageUrl(snap.data().heroImageUrl);
+        setTopImageUrl(snap.data().heroImageUrl);
       }
     };
 
@@ -65,15 +65,15 @@ export default function HomePage() {
       setEvents(data);
     };
     fetchEvents();
-    fetchHeroImage();
+    fetchTopImage();
   }, []);
 
   return (
     <main>
-      {/* ヒーローセクション */}
+      {/* トップページセクション */}
       <section
         className="bg-cover bg-center min-h-[500px] sm:min-h-[600px] text-white flex flex-col justify-center items-center px-4"
-        style={{ backgroundImage: `url('${heroImageUrl}')` }}
+        style={{ backgroundImage: `url('${topImageUrl}')` }}
       >
         <h1 className="text-5xl sm:text-6xl font-extrabold mb-4 drop-shadow-md">
           石州流野村派
