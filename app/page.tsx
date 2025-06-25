@@ -4,14 +4,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import type { EventSummary, Seat } from "@/types";
 
 export default function HomePage() {
   const [events, setEvents] = useState<EventSummary[]>([]);
-  const heroImageUrl = "/hero-matcha.png"; // 固定画像に切り戻し
+  const [heroImageUrl, setHeroImageUrl] = useState("/hero-matcha.png");
 
   useEffect(() => {
+    const fetchHeroImage = async () => {
+      const ref = doc(db, "settings", "site");
+      const snap = await getDoc(ref);
+      if (snap.exists() && snap.data().heroImageUrl) {
+        setHeroImageUrl(snap.data().heroImageUrl);
+      }
+    };
+
     const fetchEvents = async () => {
       const snapshot = await getDocs(collection(db, "events"));
       const data = snapshot.docs
@@ -57,6 +65,7 @@ export default function HomePage() {
       setEvents(data);
     };
     fetchEvents();
+    fetchHeroImage();
   }, []);
 
   return (
