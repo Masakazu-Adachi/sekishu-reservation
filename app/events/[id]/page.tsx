@@ -209,6 +209,11 @@ export default function EventDetailPage() {
 
   return (
     <main className="p-6 max-w-xl mx-auto">
+      {event.imageUrl && (
+        <div className="mb-4">
+          <img src={event.imageUrl} alt={event.title} className="w-full rounded" />
+        </div>
+      )}
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
       <p>会場: {event.venue}</p>
       <p>日付: {event.date.toDate().toLocaleDateString("ja-JP")}</p>

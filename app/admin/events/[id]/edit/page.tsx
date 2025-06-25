@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import {
   doc,
   getDoc,
@@ -15,6 +15,7 @@ import {
   writeBatch,
   addDoc,
 } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 import type { Seat } from "@/types";
 
@@ -35,6 +36,7 @@ interface EventForm {
   cost: number;
   description: string;
   seats: Seat[];
+  imageUrl: string;
 }
 
 export default function EditEventPage() {
@@ -48,7 +50,10 @@ export default function EditEventPage() {
     cost: 0,
     description: "",
     seats: [],
+    imageUrl: "",
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -65,7 +70,9 @@ export default function EditEventPage() {
           cost: data.cost,
           description: data.description,
           seats: data.seats,
+          imageUrl: data.imageUrl || "",
         });
+        setPreviewUrl(data.imageUrl || "");
       }
     };
     fetchEvent();
@@ -100,6 +107,14 @@ export default function EditEventPage() {
     }
   };
 
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const sortSeats = (seats: Seat[]) =>
     [...seats].sort((a, b) => {
       if (a.time === TENTATIVE_LABEL) return 1;
@@ -126,8 +141,16 @@ export default function EditEventPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    let imageUrl = form.imageUrl;
+    if (imageFile) {
+      const storageRef = ref(storage, `event-images/${imageFile.name}`);
+      await uploadBytes(storageRef, imageFile);
+      imageUrl = await getDownloadURL(storageRef);
+    }
+
     const eventData = {
       ...form,
+      imageUrl,
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
       seats: form.seats.map((seat) => ({
@@ -221,6 +244,18 @@ export default function EditEventPage() {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block mb-1">イベント画像</label>
+          {previewUrl && (
+            <img src={previewUrl} alt="preview" className="w-full mb-2 rounded" />
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageFileChange}
+            className="border p-2 w-full"
+          />
         </div>
         <div>
           <label className="block mb-1">備考</label>
