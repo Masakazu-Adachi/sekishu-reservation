@@ -78,7 +78,7 @@ export default function HomePage() {
         <h1 className="text-5xl sm:text-6xl font-extrabold mb-4 drop-shadow-md">
           石州流野村派
         </h1>
-        <p className="text-xl sm:text-2xl drop-shadow">お茶席予約サイト</p>
+        <p className="text-xl sm:text-2xl drop-shadow">茶会行事 予約サイト</p>
       </section>
 
       {/* イベント一覧セクション */}
