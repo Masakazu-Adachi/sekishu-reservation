@@ -40,7 +40,7 @@ export default function AdminTopImageSettings() {
     setProgress(0);
 
     try {
-      const storageRef = ref(storage, `hero-images/${file.name}`);
+      const storageRef = ref(storage, `images/hero-images/${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(

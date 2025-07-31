@@ -5,12 +5,12 @@ rules_version = '2';
 //    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
-    match /hero-images/{allPaths=**} {
+    // images フォルダ以下は全て読み書き可能
+    match /images/{allPaths=**} {
       allow read, write;
     }
-    match /greeting-images/{allPaths=**} {
-      allow read, write;
-    }
+
+    // その他は読み書き禁止
     match /{allPaths=**} {
       allow read, write: if false;
     }
