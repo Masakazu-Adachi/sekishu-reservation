@@ -59,7 +59,7 @@ export default function AdminGreetingSettings() {
     setProgress(0);
 
     try {
-      const storageRef = ref(storage, `greeting-images/${file.name}`);
+      const storageRef = ref(storage, `images/greeting-images/${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(
