@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { uploadImage } from "@/lib/uploadImage";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import type { GreetingLine } from "@/types";
 
 export default function AdminGreetingSettings() {
@@ -59,33 +59,21 @@ export default function AdminGreetingSettings() {
     setProgress(0);
 
     try {
-      const storageRef = ref(storage, `images/greeting-images/${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          setProgress((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-        },
-        (error) => {
-          console.error(error);
-          alert("アップロードに失敗しました");
-          setUploading(false);
-        },
-        async () => {
-          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-          await setDoc(
-            doc(db, "settings", "site"),
-            { greetingImageUrl: downloadUrl },
-            { merge: true }
-          );
-          setImageUrl(downloadUrl);
-          setUploading(false);
-          setFile(null);
-          setProgress(0);
-          alert("画像をアップロードし、URLを保存しました！");
-        }
+      const downloadUrl = await uploadImage(
+        file,
+        `images/greeting-images/${file.name}`,
+        (p) => setProgress(p)
       );
+      await setDoc(
+        doc(db, "settings", "site"),
+        { greetingImageUrl: downloadUrl },
+        { merge: true }
+      );
+      setImageUrl(downloadUrl);
+      setUploading(false);
+      setFile(null);
+      setProgress(0);
+      alert("画像をアップロードし、URLを保存しました！");
     } catch (err) {
       console.error(err);
       alert("アップロードでエラーが発生しました");
