@@ -5,13 +5,20 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import type { EventSummary, Seat } from "@/types";
+import type { EventSummary, Seat, GreetingLine } from "@/types";
 
 export default function HomePage() {
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
-  const [greetingText, setGreetingText] = useState(
-    "の度、お茶会へ参加される皆様の利便性を考慮し、茶会予約のサイトの立ち上げをいたしました。茶会予約参加の登録をはじめ、茶会のご案内や過去の茶会のご紹介などサイトを通じて発信して参ります。\n皆様の役に立つツールとしてご活用いただければ幸いです。どうぞ、宜しくお願い致します。\n石州流野村派　代表\n悠瓢庵　堀 一孝"
+  const defaultGreeting =
+    "の度、お茶会へ参加される皆様の利便性を考慮し、茶会予約のサイトの立ち上げをいたしました。茶会予約参加の登録をはじめ、茶会のご案内や過去の茶会のご紹介などサイトを通じて発信して参ります。\n皆様の役に立つツールとしてご活用いただければ幸いです。どうぞ、宜しくお願い致します。\n石州流野村派　代表\n悠瓢庵　堀 一孝";
+  const [greetingLines, setGreetingLines] = useState<GreetingLine[]>(
+    defaultGreeting.split("\n").map((t) => ({
+      text: t,
+      align: "left",
+      color: "#000000",
+      font: "serif",
+    }))
   );
   const [greetingImageUrl, setGreetingImageUrl] = useState("");
 
@@ -22,7 +29,19 @@ export default function HomePage() {
       if (snap.exists()) {
         const data = snap.data();
         if (data.heroImageUrl) setTopImageUrl(data.heroImageUrl);
-        if (data.greetingText) setGreetingText(data.greetingText);
+        if (data.greetingLines) {
+          setGreetingLines(data.greetingLines as GreetingLine[]);
+        } else if (data.greetingText) {
+          const split = (data.greetingText as string).split("\n");
+          setGreetingLines(
+            split.map((t: string) => ({
+              text: t,
+              align: "left",
+              color: "#000000",
+              font: "serif",
+            }))
+          );
+        }
         if (data.greetingImageUrl) setGreetingImageUrl(data.greetingImageUrl);
       }
     };
@@ -89,7 +108,7 @@ export default function HomePage() {
       </section>
 
       {/* ごあいさつセクション */}
-      <section className="py-8 max-w-5xl mx-auto px-4 text-center">
+      <section className="py-8 max-w-5xl mx-auto px-4">
         {greetingImageUrl && (
           <img
             src={greetingImageUrl}
@@ -97,7 +116,30 @@ export default function HomePage() {
             className="w-full mb-4 rounded"
           />
         )}
-        <p className="whitespace-pre-line text-lg">{greetingText}</p>
+        {greetingLines &&
+          greetingLines.map((line, idx) => {
+            const alignClass =
+              line.align === "center"
+                ? "text-center"
+                : line.align === "right"
+                ? "text-right"
+                : "text-left";
+            const fontClass =
+              line.font === "sans"
+                ? "font-sans"
+                : line.font === "mono"
+                ? "font-mono"
+                : "font-serif";
+            return (
+              <p
+                key={idx}
+                className={`text-lg ${alignClass} ${fontClass}`}
+                style={{ color: line.color }}
+              >
+                {line.text}
+              </p>
+            );
+          })}
       </section>
 
       {/* イベント一覧セクション */}
