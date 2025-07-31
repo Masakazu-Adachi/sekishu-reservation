@@ -56,3 +56,31 @@ FROM_EMAIL=noreply@sustirel.com
 ```
 
 By default the sender address is `onboarding@resend.dev`, but you can override it using the `FROM_EMAIL` variable as shown above.
+
+## Firebase Storage の CORS 設定
+
+`sekishu-nomura-ochakai.sustirel.com` からの画像アップロードを許可するには、以下の手順で CORS 設定を行います。
+
+1. `cors.json` を編集し、許可するオリジンを追加します。
+
+```json
+[
+  {
+    "origin": [
+      "http://localhost:3000",
+      "https://sekishu-nomura-ochakai.sustirel.com"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type"]
+  }
+]
+```
+
+2. `gsutil` を使って Firebase Storage に設定を反映します。
+
+```bash
+npm run set-cors
+```
+
+このコマンドは内部で `gsutil cors set cors.json gs://ochakai-reserve.appspot.com` を実行します。

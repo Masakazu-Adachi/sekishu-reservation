@@ -2,12 +2,13 @@
   "name": "sekishu-reservation",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint",
+      "set-cors": "gsutil cors set cors.json gs://ochakai-reserve.appspot.com"
+    },
   "dependencies": {
     "date-fns": "^4.1.0",
     "firebase": "^11.6.1",
