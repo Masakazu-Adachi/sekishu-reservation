@@ -62,7 +62,7 @@ export default function AdminGreetingSettings() {
       const downloadUrl = await uploadImage(
         file,
         `images/greeting-images/${file.name}`,
-        (p) => setProgress(p)
+        setProgress
       );
       await setDoc(
         doc(db, "settings", "site"),

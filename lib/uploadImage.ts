@@ -1,6 +1,8 @@
 import { storage } from "./firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
+// Firebase Storage に画像をアップロードしてダウンロード URL を取得する共通関数
+
 /**
  * Firebase Storage へ画像をアップロードしてURLを取得します
  * @param file アップロードする画像ファイル
