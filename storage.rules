@@ -8,6 +8,9 @@ service firebase.storage {
     match /hero-images/{allPaths=**} {
       allow read, write;
     }
+    match /greeting-images/{allPaths=**} {
+      allow read, write;
+    }
     match /{allPaths=**} {
       allow read, write: if false;
     }
