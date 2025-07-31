@@ -10,13 +10,20 @@ import type { EventSummary, Seat } from "@/types";
 export default function HomePage() {
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
+  const [greetingText, setGreetingText] = useState(
+    "の度、お茶会へ参加される皆様の利便性を考慮し、茶会予約のサイトの立ち上げをいたしました。茶会予約参加の登録をはじめ、茶会のご案内や過去の茶会のご紹介などサイトを通じて発信して参ります。\n皆様の役に立つツールとしてご活用いただければ幸いです。どうぞ、宜しくお願い致します。\n石州流野村派　代表\n悠瓢庵　堀 一孝"
+  );
+  const [greetingImageUrl, setGreetingImageUrl] = useState("");
 
   useEffect(() => {
-    const fetchTopImage = async () => {
+    const fetchSiteSettings = async () => {
       const ref = doc(db, "settings", "site");
       const snap = await getDoc(ref);
-      if (snap.exists() && snap.data().heroImageUrl) {
-        setTopImageUrl(snap.data().heroImageUrl);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.heroImageUrl) setTopImageUrl(data.heroImageUrl);
+        if (data.greetingText) setGreetingText(data.greetingText);
+        if (data.greetingImageUrl) setGreetingImageUrl(data.greetingImageUrl);
       }
     };
 
@@ -65,7 +72,7 @@ export default function HomePage() {
       setEvents(data);
     };
     fetchEvents();
-    fetchTopImage();
+    fetchSiteSettings();
   }, []);
 
   return (
@@ -79,6 +86,18 @@ export default function HomePage() {
           石州流野村派
         </h1>
         <p className="text-xl sm:text-2xl drop-shadow">茶会行事 予約サイト</p>
+      </section>
+
+      {/* ごあいさつセクション */}
+      <section className="py-8 max-w-5xl mx-auto px-4 text-center">
+        {greetingImageUrl && (
+          <img
+            src={greetingImageUrl}
+            alt="ごあいさつ"
+            className="w-full mb-4 rounded"
+          />
+        )}
+        <p className="whitespace-pre-line text-lg">{greetingText}</p>
       </section>
 
       {/* イベント一覧セクション */}
