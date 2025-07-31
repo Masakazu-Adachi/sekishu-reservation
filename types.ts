@@ -48,3 +48,11 @@ export interface GreetingLine {
   color: string;
   font: "serif" | "sans" | "mono";
 }
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  imageUrl?: string;
+}

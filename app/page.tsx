@@ -1,14 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
-import type { EventSummary, Seat, GreetingLine } from "@/types";
+import { doc, getDoc } from "firebase/firestore";
+import type { GreetingLine } from "@/types";
 
 export default function HomePage() {
-  const [events, setEvents] = useState<EventSummary[]>([]);
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
   const defaultGreeting =
     "の度、お茶会へ参加される皆様の利便性を考慮し、茶会予約のサイトの立ち上げをいたしました。茶会予約参加の登録をはじめ、茶会のご案内や過去の茶会のご紹介などサイトを通じて発信して参ります。\n皆様の役に立つツールとしてご活用いただければ幸いです。どうぞ、宜しくお願い致します。\n石州流野村派　代表\n悠瓢庵　堀 一孝";
@@ -46,51 +44,6 @@ export default function HomePage() {
       }
     };
 
-    const fetchEvents = async () => {
-      const snapshot = await getDocs(collection(db, "events"));
-      const data = snapshot.docs
-        .map((doc) => {
-          const d = doc.data();
-          return {
-            id: doc.id,
-            title: d.title,
-            venue: d.venue,
-            rawDate: d.date?.toDate() as Date,
-            cost: d.cost,
-            description: d.description,
-            participants: (d.seats as Seat[] | undefined)?.reduce(
-              (sum: number, seat) => sum + (seat.reserved || 0),
-              0
-            ),
-            capacity: (d.seats as Seat[] | undefined)?.reduce(
-              (sum: number, seat) => sum + (seat.capacity || 0),
-              0
-            ),
-            imageUrl: d.imageUrl || "/event1.jpg",
-          };
-        })
-        .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
-        .map((ev) => {
-          return {
-            id: ev.id,
-            title: ev.title,
-            venue: ev.venue,
-            date: ev.rawDate.toLocaleDateString("ja-JP", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              weekday: "short",
-            }),
-            cost: ev.cost,
-            description: ev.description,
-            participants: ev.participants,
-            capacity: ev.capacity,
-            imageUrl: ev.imageUrl,
-          } as EventSummary;
-        });
-      setEvents(data);
-    };
-    fetchEvents();
     fetchSiteSettings();
   }, []);
 
@@ -142,43 +95,24 @@ export default function HomePage() {
           })}
       </section>
 
-      {/* イベント一覧セクション */}
-      <section className="py-12 mb-8 max-w-5xl mx-auto px-4 bg-amber-50 border-b-4 border-amber-500 rounded">
-        <h3 className="text-lg font-semibold text-amber-700 text-center mb-6">お茶会のご案内</h3>
-        <div className="space-y-8">
-          {events.map((event) => (
-            <div
-              key={event.id}
-              className="flex flex-col md:flex-row items-center gap-6 p-6 border rounded-lg shadow-lg bg-white hover:shadow-xl transition-shadow"
-            >
-              <div className="flex-1">
-                <h4 className="text-xl font-bold mb-2">{event.title}</h4>
-                <p className="mb-1 font-semibold">会場: <span className="font-normal">{event.venue}</span></p>
-                <p className="mb-1 font-semibold">日時: <span className="font-normal">{event.date}</span></p>
-                <p className="mb-1 font-semibold">参加費用: <span className="font-normal">{event.cost}円</span></p>
-                <p className="mb-3 font-semibold">
-                  参加人数: <span className="font-normal">{event.participants}/{event.capacity}人</span>
-                </p>
-                <p className="mb-4">{event.description}</p>
-                <Link href={`/events/${event.id}`}>
-                  <button className="w-32 mx-auto block bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded shadow transition-colors">
-                    予約する
-                  </button>
-                </Link>
-              </div>
-              <div className="w-full md:w-1/3">
-                <div className="relative w-full h-48 md:h-64 rounded overflow-hidden">
-                  <Image
-                    src={event.imageUrl}
-                    alt={event.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+      {/* 各ページへのリンク */}
+      <section className="py-12 mb-8 max-w-5xl mx-auto px-4 text-center">
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <Link href="/events">
+            <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
+              お茶会のご案内
+            </button>
+          </Link>
+          <Link href="/posts/past">
+            <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
+              過去の茶会紹介
+            </button>
+          </Link>
+          <Link href="/posts/letters">
+            <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
+              通信
+            </button>
+          </Link>
         </div>
       </section>
 
