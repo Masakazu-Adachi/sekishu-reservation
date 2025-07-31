@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { db, storage } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import type { GreetingLine } from "@/types";
 
 export default function AdminGreetingSettings() {
-  const [text, setText] = useState("");
+  const [lines, setLines] = useState<GreetingLine[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -19,8 +20,24 @@ export default function AdminGreetingSettings() {
       const snap = await getDoc(refSite);
       if (snap.exists()) {
         const data = snap.data();
-        setText(data.greetingText || "");
         setImageUrl(data.greetingImageUrl || "");
+        if (data.greetingLines) {
+          setLines(data.greetingLines as GreetingLine[]);
+        } else if (data.greetingText) {
+          const split = (data.greetingText as string).split("\n");
+          setLines(
+            split.map((t: string) => ({
+              text: t,
+              align: "left",
+              color: "#000000",
+              font: "serif",
+            }))
+          );
+        } else {
+          setLines([{ text: "", align: "left", color: "#000000", font: "serif" }]);
+        }
+      } else {
+        setLines([{ text: "", align: "left", color: "#000000", font: "serif" }]);
       }
     };
     fetchData();
@@ -76,11 +93,32 @@ export default function AdminGreetingSettings() {
     }
   };
 
-  const handleSaveText = async () => {
+  const handleLineChange = (
+    index: number,
+    key: keyof GreetingLine,
+    value: string
+  ) => {
+    setLines((prev) =>
+      prev.map((ln, i) => (i === index ? { ...ln, [key]: value } : ln))
+    );
+  };
+
+  const addLine = () => {
+    setLines((prev) => [
+      ...prev,
+      { text: "", align: "left", color: "#000000", font: "serif" },
+    ]);
+  };
+
+  const removeLine = (index: number) => {
+    setLines((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveLines = async () => {
     try {
       await setDoc(
         doc(db, "settings", "site"),
-        { greetingText: text },
+        { greetingLines: lines },
         { merge: true }
       );
       alert("ごあいさつを保存しました！");
@@ -124,15 +162,59 @@ export default function AdminGreetingSettings() {
         {uploading ? `アップロード中...${progress.toFixed(0)}%` : "画像をアップロードして設定"}
       </button>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        className="w-full h-40 p-2 border rounded mb-4"
-        placeholder="ごあいさつ文を入力"
-      />
+      {lines.map((line, idx) => (
+        <div key={idx} className="mb-4 border p-3 rounded">
+          <input
+            value={line.text}
+            onChange={(e) => handleLineChange(idx, "text", e.target.value)}
+            className="w-full p-2 border rounded mb-2"
+            placeholder={`行${idx + 1}のテキスト`}
+          />
+          <div className="flex items-center gap-2">
+            <select
+              value={line.align}
+              onChange={(e) => handleLineChange(idx, "align", e.target.value)}
+              className="border rounded p-1"
+            >
+              <option value="left">左</option>
+              <option value="center">中央</option>
+              <option value="right">右</option>
+            </select>
+            <select
+              value={line.font}
+              onChange={(e) => handleLineChange(idx, "font", e.target.value)}
+              className="border rounded p-1"
+            >
+              <option value="serif">Serif</option>
+              <option value="sans">Sans</option>
+              <option value="mono">Mono</option>
+            </select>
+            <input
+              type="color"
+              value={line.color}
+              onChange={(e) => handleLineChange(idx, "color", e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => removeLine(idx)}
+              className="text-red-600 text-sm"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      ))}
 
       <button
-        onClick={handleSaveText}
+        type="button"
+        onClick={addLine}
+        className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded mb-4"
+      >
+        行を追加
+      </button>
+
+      <button
+        onClick={handleSaveLines}
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
       >
         ごあいさつを保存

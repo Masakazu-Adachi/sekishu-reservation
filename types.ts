@@ -41,3 +41,10 @@ export interface Reservation {
   createdAt: string;
   password?: string;
 }
+
+export interface GreetingLine {
+  text: string;
+  align: "left" | "center" | "right";
+  color: string;
+  font: "serif" | "sans" | "mono";
+}
