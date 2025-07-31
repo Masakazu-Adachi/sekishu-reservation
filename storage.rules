@@ -1,12 +1,13 @@
 rules_version = '2';
-
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
     // images フォルダ以下は全て読み書き可能
     match /images/{allPaths=**} {
+      allow read, write;
+    }
+
+    // hero フォルダにも一時的に読み書き許可
+    match /hero/{allPaths=**} {
       allow read, write;
     }
 
