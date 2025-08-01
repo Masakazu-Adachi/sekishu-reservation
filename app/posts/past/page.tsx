@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import type { BlogPost } from "@/types";
 import LinkBackToHome from "@/components/LinkBackToHome";
+import BlogCard from "@/components/BlogCard";
 
 export default function PastPostsPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -20,22 +21,12 @@ export default function PastPostsPage() {
   }, []);
 
   return (
-    <main className="p-6 max-w-3xl mx-auto">
+    <main className="p-6 max-w-5xl mx-auto">
       <LinkBackToHome />
       <h1 className="text-2xl font-bold mb-6 text-center">過去の茶会紹介</h1>
-      <div className="space-y-8">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {posts.map((post) => (
-          <article key={post.id} className="border p-4 rounded shadow bg-white">
-            <h2 className="text-xl font-semibold mb-2">{post.title}</h2>
-            {post.imageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.imageUrl} alt={post.title} className="mb-2 w-full rounded" />
-            )}
-            <p className="whitespace-pre-wrap">{post.body}</p>
-            <p className="text-right text-sm text-gray-500 mt-2">
-              {new Date(post.createdAt).toLocaleDateString("ja-JP")}
-            </p>
-          </article>
+          <BlogCard key={post.id} post={post} />
         ))}
       </div>
     </main>
