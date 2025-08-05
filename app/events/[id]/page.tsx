@@ -208,7 +208,7 @@ export default function EventDetailPage() {
   if (!event) return <p className="p-6">読み込み中...</p>;
 
   return (
-    <main className="p-6 max-w-xl mx-auto">
+    <main className="p-6 max-w-xl mx-auto font-serif">
       {event.imageUrl && (
         <div className="mb-4">
           <img src={event.imageUrl} alt={event.title} className="w-full rounded" />
@@ -301,7 +301,7 @@ export default function EventDetailPage() {
         </div>
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+          className="bg-blue-600 text-white px-4 py-2 rounded w-full font-serif"
         >
           予約する
         </button>
@@ -321,14 +321,14 @@ export default function EventDetailPage() {
             <div className="flex gap-4 pt-2">
               <button
                 type="button"
-                className="bg-gray-500 text-white px-4 py-2 rounded flex-1"
+                className="bg-gray-500 text-white px-4 py-2 rounded flex-1 font-serif"
                 onClick={() => setShowConfirmation(false)}
               >
                 戻る（修正する）
               </button>
               <button
                 type="button"
-                className="bg-blue-600 text-white px-4 py-2 rounded flex-1"
+                className="bg-blue-600 text-white px-4 py-2 rounded flex-1 font-serif"
                 onClick={handleSubmit}
               >
                 この内容で予約する

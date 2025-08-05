@@ -4,7 +4,7 @@ export default function LinkBackToHome() {
   return (
     <Link
       href="/"
-      className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4 font-medium"
+      className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4 font-medium font-serif"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
