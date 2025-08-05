@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const htmlBody =
       html ||
       `
-        <div style="font-family: sans-serif; line-height: 1.6;">
+        <div style="font-family:'Noto Serif JP', serif; line-height: 1.6;">
           <p>これはテストメールです。</p>
           <p>Resendの設定確認用として送信されました。</p>
         </div>
