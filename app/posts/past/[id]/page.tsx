@@ -23,12 +23,12 @@ export default function PastPostDetailPage() {
     fetchPost();
   }, [id]);
 
-  if (!post) return <p className="p-6">読み込み中...</p>;
+  if (!post) return <p className="p-6 font-serif">読み込み中...</p>;
 
   const date = new Date(post.createdAt).toLocaleDateString("ja-JP");
 
   return (
-    <main className="p-6 max-w-3xl mx-auto">
+    <main className="p-6 max-w-3xl mx-auto font-serif">
       <LinkBackToHome />
       {post.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -38,8 +38,10 @@ export default function PastPostDetailPage() {
           className="w-full rounded mb-4"
         />
       )}
-      <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
-      <div className="whitespace-pre-wrap text-gray-700 mb-4">{post.body}</div>
+      <h1 className="text-3xl font-bold mb-4 font-serif">{post.title}</h1>
+      <div className="whitespace-pre-wrap text-gray-700 mb-4">
+        {post.body}
+      </div>
       <p className="text-right text-sm text-gray-500">{date}</p>
     </main>
   );
