@@ -35,7 +35,7 @@ export default function AdminDashboard() {
           className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
           onClick={() => router.push("/admin2/letters")}
         >
-          <h2 className="text-xl font-semibold mb-2">✉ 通信</h2>
+          <h2 className="text-xl font-semibold mb-2">✉ 通信ページ</h2>
           <p>通信ページの記事を投稿します</p>
         </div>
       </div>

@@ -77,16 +77,10 @@ export default function HomePage() {
                 : line.align === "right"
                 ? "text-right"
                 : "text-left";
-            const fontClass =
-              line.font === "sans"
-                ? "font-sans"
-                : line.font === "mono"
-                ? "font-mono"
-                : "font-serif";
             return (
               <p
                 key={idx}
-                className={`text-lg ${alignClass} ${fontClass}`}
+                className={`text-lg ${alignClass} font-serif`}
                 style={{ color: line.color }}
               >
                 {line.text}
@@ -99,30 +93,30 @@ export default function HomePage() {
       <section className="py-12 mb-8 max-w-5xl mx-auto px-4 text-center">
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link href="/events">
-            <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
+            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow">
               お茶会のご案内
             </button>
           </Link>
           <Link href="/posts/past">
-            <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
+            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow">
               過去の茶会紹介
             </button>
           </Link>
           <Link href="/posts/letters">
-            <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow">
-              通信
+            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow">
+              通信ページ
             </button>
           </Link>
         </div>
       </section>
 
       {/* 予約確認セクション */}
-      <section className="py-8 bg-amber-50 border-t-4 border-amber-500 text-center px-4 mt-8 max-w-5xl mx-auto">
-        <p className="mb-4 text-lg font-semibold text-amber-700">
+      <section className="py-8 bg-[#F5F0E6] border-t-4 border-[#C1A46F] text-center px-4 mt-8 max-w-5xl mx-auto">
+        <p className="mb-4 text-lg font-semibold text-[#8B5E3C]">
           すでに予約済みの方はこちら
         </p>
         <Link href="/reservations/confirm">
-          <button className="bg-amber-500 hover:bg-amber-600 text-white py-2 px-6 rounded shadow transition-colors">
+          <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow transition-colors">
             予約の確認・変更はこちら
           </button>
         </Link>

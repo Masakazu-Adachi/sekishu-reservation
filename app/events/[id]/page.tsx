@@ -120,7 +120,7 @@ export default function EventDetailPage() {
         to: email,
         subject: `${event.title} のご予約完了通知`,
         html: `
-          <div style="font-family:'Hiragino Mincho Pro', serif; line-height:1.8; font-size:16px;">
+          <div style="font-family:'Noto Serif JP', serif; line-height:1.8; font-size:16px;">
             <p>${name} 様</p>
             <p>
               この度は「${event.title}」にお申し込みいただき、誠にありがとうございます。<br/>
@@ -171,7 +171,7 @@ export default function EventDetailPage() {
         subject: `${event.title} の予約が入りました`,
         html: `
           
-          <div style="font-family:sans-serif; line-height:1.6;">
+          <div style="font-family:'Noto Serif JP', serif; line-height:1.6;">
             <p>${name}様から予約がありました。</p>
             <ul>
               <li><strong>イベント:</strong> ${event.title}</li>

@@ -9,7 +9,7 @@ export default function LettersAdminPage() {
       <LinkBackToAdmin2Top />
       <AdminBlogEditor
         collectionName="letters"
-        heading="通信"
+        heading="通信ページ"
         storagePath="images/letters"
       />
     </main>

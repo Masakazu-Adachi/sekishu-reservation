@@ -1,13 +1,17 @@
+import Link from "next/link";
 import type { BlogPost } from "@/types";
 
 interface Props {
   post: BlogPost;
+  href: string;
 }
 
-export default function BlogCard({ post }: Props) {
+export default function BlogCard({ post, href }: Props) {
   const date = new Date(post.createdAt).toLocaleDateString("ja-JP");
+  const preview =
+    post.body.length > 60 ? post.body.slice(0, 60) + "..." : post.body;
   return (
-    <article className="rounded-lg overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow">
+    <Link href={href} className="block rounded-lg overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow">
       {post.imageUrl && (
         <div className="h-48 w-full overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -20,9 +24,9 @@ export default function BlogCard({ post }: Props) {
       )}
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-2">{post.title}</h2>
-        <p className="whitespace-pre-wrap text-gray-700">{post.body}</p>
+        <p className="whitespace-pre-wrap text-gray-700">{preview}</p>
         <p className="text-right text-sm text-gray-500 mt-4">{date}</p>
       </div>
-    </article>
+    </Link>
   );
 }
