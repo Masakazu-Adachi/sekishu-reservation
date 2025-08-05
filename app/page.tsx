@@ -54,10 +54,10 @@ export default function HomePage() {
         className="bg-cover bg-center min-h-[500px] sm:min-h-[600px] text-white flex flex-col justify-center items-center px-4"
         style={{ backgroundImage: `url('${topImageUrl}')` }}
       >
-        <h1 className="text-5xl sm:text-6xl font-extrabold mb-4 drop-shadow-md">
+        <h1 className="text-5xl sm:text-6xl font-bold mb-4 drop-shadow-md font-serif">
           石州流野村派
         </h1>
-        <p className="text-xl sm:text-2xl drop-shadow">茶会行事 予約サイト</p>
+        <p className="text-xl sm:text-2xl drop-shadow font-serif">茶会行事 予約サイト</p>
       </section>
 
       {/* ごあいさつセクション */}
@@ -93,17 +93,17 @@ export default function HomePage() {
       <section className="py-12 mb-8 max-w-5xl mx-auto px-4 text-center">
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link href="/events">
-            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow">
+            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow font-serif">
               お茶会のご案内
             </button>
           </Link>
           <Link href="/posts/past">
-            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow">
+            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow font-serif">
               過去の茶会紹介
             </button>
           </Link>
           <Link href="/posts/letters">
-            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow">
+            <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow font-serif">
               通信ページ
             </button>
           </Link>
@@ -112,11 +112,11 @@ export default function HomePage() {
 
       {/* 予約確認セクション */}
       <section className="py-8 bg-[#F5F0E6] border-t-4 border-[#C1A46F] text-center px-4 mt-8 max-w-5xl mx-auto">
-        <p className="mb-4 text-lg font-semibold text-[#8B5E3C]">
+        <p className="mb-4 text-lg font-semibold text-[#8B5E3C] font-serif">
           すでに予約済みの方はこちら
         </p>
         <Link href="/reservations/confirm">
-          <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow transition-colors">
+          <button className="bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 px-6 rounded shadow transition-colors font-serif">
             予約の確認・変更はこちら
           </button>
         </Link>

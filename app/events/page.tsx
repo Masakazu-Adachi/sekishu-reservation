@@ -60,7 +60,7 @@ export default function EventsPage() {
   }, []);
 
   return (
-    <main className="p-6 max-w-5xl mx-auto">
+    <main className="p-6 max-w-5xl mx-auto font-serif">
       <LinkBackToHome />
       <h1 className="text-2xl font-bold text-center mb-6">お茶会のご案内</h1>
       <div className="space-y-8">
@@ -88,7 +88,7 @@ export default function EventsPage() {
               </p>
               <p className="mb-4">{event.description}</p>
               <Link href={`/events/${event.id}`}>
-                <button className="w-32 mx-auto block bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded shadow transition-colors">
+                <button className="w-32 mx-auto block bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 rounded shadow transition-colors font-serif">
                   予約する
                 </button>
               </Link>
