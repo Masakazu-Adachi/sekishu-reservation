@@ -16,19 +16,18 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const bytes = new Uint8Array(await file.arrayBuffer());
 
     const uniqueName = `${Date.now()}-${file.name}`;
     const storageRef = ref(storage, `images/${uniqueName}`);
 
-    const snapshot = await uploadBytes(storageRef, buffer, {
+    const snapshot = await uploadBytes(storageRef, bytes, {
       contentType: file.type,
     });
     const url = await getDownloadURL(snapshot.ref);
     return NextResponse.json({ url });
   } catch (err) {
-    console.error(err);
+    console.error("UPLOAD ERROR", err);
     return NextResponse.json({ error: "アップロードに失敗しました" }, { status: 500 });
   }
 }
