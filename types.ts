@@ -52,7 +52,7 @@ export interface GreetingLine {
 export interface BlogPost {
   id: string;
   title: string;
-  body: string;
+  body: string; // HTML 文字列
   createdAt: string;
   imageUrl?: string;
 }

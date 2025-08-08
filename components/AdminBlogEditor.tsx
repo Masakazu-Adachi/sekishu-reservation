@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
+import type ReactQuillType from "react-quill";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -21,6 +23,10 @@ interface Props {
   storagePath: string;
 }
 
+const ReactQuill = dynamic(async () => (await import("react-quill")).default, {
+  ssr: false,
+});
+
 export default function AdminBlogEditor({ collectionName, heading, storagePath }: Props) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [title, setTitle] = useState("");
@@ -31,6 +37,64 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const inputRef = useRef<HTMLInputElement>(null);
+  const quillRef = useRef<ReactQuillType | null>(null);
+
+  const modules = {
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        [{ font: [] }],
+        [{ size: [] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ color: [] }, { background: [] }],
+        [{ align: [] }],
+        ["link", "image"],
+        ["clean"],
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement("input");
+          input.setAttribute("type", "file");
+          input.setAttribute("accept", "image/*");
+          input.click();
+          input.onchange = async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            try {
+              const url = await uploadImage(
+                file,
+                `${storagePath}/${Date.now()}-${file.name}`
+              );
+              const editor = quillRef.current?.getEditor();
+              const range = editor?.getSelection(true);
+              if (range) {
+                editor.insertEmbed(range.index, "image", url);
+              }
+            } catch (err) {
+              console.error(err);
+              alert("画像のアップロードに失敗しました");
+            }
+          };
+        },
+      },
+    },
+  };
+
+  const formats = [
+    "header",
+    "font",
+    "size",
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "color",
+    "background",
+    "align",
+    "link",
+    "image",
+    "clean",
+  ];
 
   const fetchPosts = async () => {
     const q = query(
@@ -110,11 +174,13 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           placeholder="タイトル"
           className="border p-2 w-full mb-2"
         />
-        <textarea
+        <ReactQuill
+          ref={quillRef}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="本文"
-          className="border p-2 w-full h-40 mb-2"
+          onChange={setBody}
+          modules={modules}
+          formats={formats}
+          className="mb-2"
         />
         <input
           type="file"
@@ -191,7 +257,10 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
               // eslint-disable-next-line @next/next/no-img-element
               <img src={post.imageUrl} alt="" className="mb-2 w-full rounded" />
             )}
-            <p className="whitespace-pre-wrap text-sm">{post.body}</p>
+            <div
+              className="text-sm"
+              dangerouslySetInnerHTML={{ __html: post.body }}
+            />
           </div>
         ))}
       </div>
