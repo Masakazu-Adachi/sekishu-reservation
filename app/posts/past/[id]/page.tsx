@@ -39,9 +39,10 @@ export default function PastPostDetailPage() {
         />
       )}
       <h1 className="text-3xl font-bold mb-4 font-serif">{post.title}</h1>
-      <div className="whitespace-pre-wrap text-gray-700 mb-4">
-        {post.body}
-      </div>
+      <div
+        className="text-gray-700 mb-4"
+        dangerouslySetInnerHTML={{ __html: post.body }}
+      />
       <p className="text-right text-sm text-gray-500">{date}</p>
     </main>
   );

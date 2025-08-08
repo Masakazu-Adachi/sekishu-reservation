@@ -8,8 +8,8 @@ interface Props {
 
 export default function BlogCard({ post, href }: Props) {
   const date = new Date(post.createdAt).toLocaleDateString("ja-JP");
-  const preview =
-    post.body.length > 60 ? post.body.slice(0, 60) + "..." : post.body;
+  const plain = post.body.replace(/<[^>]+>/g, "");
+  const preview = plain.length > 60 ? plain.slice(0, 60) + "..." : plain;
   return (
     <Link
       href={href}
@@ -27,7 +27,7 @@ export default function BlogCard({ post, href }: Props) {
       )}
       <div className="p-6 font-serif">
         <h2 className="text-2xl font-bold mb-2">{post.title}</h2>
-        <p className="whitespace-pre-wrap text-gray-700">{preview}</p>
+        <p className="text-gray-700">{preview}</p>
         <p className="text-right text-sm text-gray-500 mt-4">{date}</p>
       </div>
     </Link>
