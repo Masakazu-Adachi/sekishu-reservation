@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, forwardRef } from "react";
 import dynamic from "next/dynamic";
 import type ReactQuillType from "react-quill";
+import type { ReactQuillProps } from "react-quill";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -23,7 +24,14 @@ interface Props {
   storagePath: string;
 }
 
-const ReactQuill = dynamic(async () => (await import("react-quill")).default, {
+const ReactQuill = dynamic(async () => {
+  const { default: RQ } = await import("react-quill");
+  const ReactQuillWithRef = forwardRef<ReactQuillType, ReactQuillProps>((props, ref) => (
+    <RQ ref={ref} {...props} />
+  ));
+  ReactQuillWithRef.displayName = "ReactQuill";
+  return ReactQuillWithRef;
+}, {
   ssr: false,
 });
 
