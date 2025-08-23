@@ -9,7 +9,7 @@ import type { GreetingLine } from "@/types";
 export default function HomePage() {
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
   const defaultGreeting =
-    "の度、お茶会へ参加される皆様の利便性を考慮し、茶会予約のサイトの立ち上げをいたしました。茶会予約参加の登録をはじめ、茶会のご案内や過去の茶会のご紹介などサイトを通じて発信して参ります。\n皆様の役に立つツールとしてご活用いただければ幸いです。どうぞ、宜しくお願い致します。\n石州流野村派　代表\n悠瓢庵　堀 一孝";
+    "の度、お茶会へ参加される皆様の利便性を考慮し、茶会予約のサイトの立ち上げをいたしました。茶会予約参加の登録をはじめ、茶会のご案内や過去の茶会のご紹介などサイトを通じて発信して参ります。\n皆様の役に立つツールとしてご活用いただければ幸いです。どうぞ、宜しくお願い致します。\n石州流野村派　第十三代\n悠瓢庵　堀 一孝";
   const [greetingLines, setGreetingLines] = useState<GreetingLine[]>(
     defaultGreeting.split("\n").map((t) => ({
       text: t,
