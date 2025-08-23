@@ -67,7 +67,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
               );
               const editor = quillRef.current?.getEditor();
               const range = editor?.getSelection(true);
-              if (range) {
+              if (editor && range) {
                 editor.insertEmbed(range.index, "image", url);
               }
             } catch (err) {
