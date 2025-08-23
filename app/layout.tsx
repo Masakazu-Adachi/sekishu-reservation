@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Serif_JP } from "next/font/google";
 import "./globals.css";
+import "./react-dom-finddomnode-polyfill";
 
 const notoSerif = Noto_Serif_JP({
   variable: "--font-noto-serif",
