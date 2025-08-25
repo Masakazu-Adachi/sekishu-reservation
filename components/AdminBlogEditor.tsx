@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, forwardRef } from "react";
-import dynamic from "next/dynamic";
-import type ReactQuillType from "react-quill";
-import type { ReactQuillProps } from "react-quill";
+import "@/app/react-dom-finddomnode-polyfill";
+
+import { useState, useEffect, useRef } from "react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -24,17 +25,6 @@ interface Props {
   storagePath: string;
 }
 
-const ReactQuill = dynamic(async () => {
-  const { default: RQ } = await import("react-quill");
-  const ReactQuillWithRef = forwardRef<ReactQuillType, ReactQuillProps>((props, ref) => (
-    <RQ ref={ref} {...props} />
-  ));
-  ReactQuillWithRef.displayName = "ReactQuill";
-  return ReactQuillWithRef;
-}, {
-  ssr: false,
-});
-
 export default function AdminBlogEditor({ collectionName, heading, storagePath }: Props) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [title, setTitle] = useState("");
@@ -45,7 +35,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const inputRef = useRef<HTMLInputElement>(null);
-  const quillRef = useRef<ReactQuillType | null>(null);
+  const quillRef = useRef<ReactQuill | null>(null);
 
   const modules = {
     toolbar: {

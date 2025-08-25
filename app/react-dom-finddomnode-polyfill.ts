@@ -1,50 +1,29 @@
-import * as ReactDom from 'react-dom';
+'use client';
+import * as ReactDomNS from 'react-dom';
 
-// Polyfill for missing ReactDOM.findDOMNode in ESM environments.
-// Patches both the namespace and default export of react-dom.
+type DomLike = { nodeType?: number } | null | undefined;
+type WithFind = { findDOMNode?: (inst: unknown) => Element | Text | null };
+type ReactDomMutable = typeof ReactDomNS & { default?: WithFind } & WithFind;
 
-// Type representing values that may hold a DOM like object.
-type MaybeDomLike =
-  | { nodeType?: number; current?: unknown; base?: unknown }
-  | null
-  | undefined;
+const mod = ReactDomNS as ReactDomMutable;
+const target: WithFind = (mod.default ?? mod) as WithFind;
 
-type ReactDomModule = {
-  [k: string]: unknown;
-  findDOMNode?: (inst: unknown) => Node | null;
-  default?: {
-    [k: string]: unknown;
-    findDOMNode?: (inst: unknown) => Node | null;
-  };
-};
-
-const mod = ReactDom as unknown as ReactDomModule;
-
-function findDOMNode(inst: unknown): Node | null {
-  const i = inst as MaybeDomLike;
+function shim(inst: unknown): Element | Text | null {
+  const i = inst as (DomLike & { current?: DomLike; base?: DomLike }) | undefined;
   if (!i) return null;
-
-  if ((i as { nodeType?: number }).nodeType === 1) {
-    return i as unknown as Node;
-  }
-
-  const cur = (i as { current?: unknown }).current as
-    | { nodeType?: number }
-    | undefined;
-  if (cur && cur.nodeType === 1) return cur as unknown as Node;
-
-  const base = (i as { base?: unknown }).base as
-    | { nodeType?: number }
-    | undefined;
-  if (base && base.nodeType === 1) return base as unknown as Node;
-
+  if ((i as DomLike)?.nodeType === 1) return i as unknown as Element;       // 直接DOM
+  const cur = (i as { current?: DomLike }).current;
+  if (cur && cur.nodeType === 1) return cur as unknown as Element;          // ref.current
+  const base = (i as { base?: DomLike }).base;
+  if (base && base.nodeType === 1) return base as unknown as Element;       // Preact互換
   return null;
 }
 
-if (typeof mod.findDOMNode !== 'function') {
-  mod.findDOMNode = findDOMNode;
-}
-
-if (mod.default && typeof mod.default.findDOMNode !== 'function') {
-  mod.default.findDOMNode = mod.findDOMNode;
+if (typeof window !== 'undefined') {
+  if (typeof target.findDOMNode !== 'function') target.findDOMNode = shim;  // target（default or ns）
+  if (typeof mod.findDOMNode !== 'function') mod.findDOMNode = shim;        // namespace側
+  if (mod.default && typeof mod.default.findDOMNode !== 'function') {
+    mod.default.findDOMNode = shim;                                         // default側
+  }
+  (globalThis as { __FIND_DOM_NODE_SHIM__?: boolean }).__FIND_DOM_NODE_SHIM__ = true;
 }
