@@ -1,9 +1,10 @@
 "use client";
 
+// ポリフィルは最速で適用
 import "@/app/react-dom-finddomnode-polyfill";
-
 import { useState, useEffect, useRef } from "react";
-import ReactQuill from "react-quill";
+import dynamic from "next/dynamic";
+import type ReactQuillType from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { db } from "@/lib/firebase";
 import {
@@ -35,7 +36,11 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const inputRef = useRef<HTMLInputElement>(null);
-  const quillRef = useRef<ReactQuill | null>(null);
+  const quillRef = useRef<ReactQuillType | null>(null);
+
+// ReactQuill をクライアントだけで読み込む（SSG/SSR では import されない）
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
 
   const modules = {
     toolbar: {
