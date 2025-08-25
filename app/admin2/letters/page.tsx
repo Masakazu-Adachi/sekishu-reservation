@@ -1,7 +1,5 @@
-"use client";
-
-// SSG を止めてサーバー側での静的プリレンダを回避
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import AdminBlogEditor from "@/components/AdminBlogEditor";
 import LinkBackToAdmin2Top from "@/components/LinkBackToAdmin2Top";

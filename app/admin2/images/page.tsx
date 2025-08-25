@@ -52,7 +52,7 @@ export default function ImagesAdmin() {
       setItems(rows);
       setLoading(false);
     })();
-  }, []);
+  }, [storageRoot]);
 
   async function getUsageMap() {
     const map = new Map<string, Array<{ id: string; title: string }>>();

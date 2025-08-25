@@ -2,11 +2,13 @@
 
 // ポリフィルは最速で適用
 import "@/app/react-dom-finddomnode-polyfill";
-import "@/app/quill-registers";
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import type ReactQuillType from "react-quill";
 import "react-quill/dist/quill.snow.css";
+// ReactQuill はクライアントのみ読み込み（SSG/SSRで落ちないように）
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ReactQuill = dynamic(() => import("react-quill").then(m => m.default), { ssr: false }) as any;
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -60,9 +62,30 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const inputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<ReactQuillType | null>(null);
 
-// ReactQuill をクライアントだけで読み込む（SSG/SSR では import されない）
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
+  // 画像リサイズモジュールはクライアント実行時にだけ登録（SSR/SSGで評価させない）
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [QuillMod, IRM] = await Promise.all([
+          import("quill"),
+          import("quill-image-resize-module"),
+        ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Quill: any = (QuillMod as any).default || QuillMod;
+        if (!mounted) return;
+        if (!Quill.__IMAGE_RESIZE_REGISTERED__) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ImageResize = (IRM as any).default || IRM;
+          Quill.register("modules/imageResize", ImageResize);
+          Quill.__IMAGE_RESIZE_REGISTERED__ = true;
+        }
+      } catch {}
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+
   // 軽量デバウンス
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function useDebouncedCallback<T extends (...args: any[]) => void>(fn: T, delay: number) {
@@ -126,6 +149,7 @@ const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
       },
     },
     clipboard: { matchVisual: false },
+    // 画像リサイズモジュール（上の useEffect で登録済み）
     imageResize: {
       modules: ["Resize", "DisplaySize", "Toolbar"],
     },
