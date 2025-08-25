@@ -55,4 +55,5 @@ export interface BlogPost {
   body: string; // HTML 文字列
   createdAt: string;
   imageUrl?: string;
+  images?: string[];
 }

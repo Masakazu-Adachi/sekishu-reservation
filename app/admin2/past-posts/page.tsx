@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 import AdminBlogEditor from "@/components/AdminBlogEditor";
 import LinkBackToAdmin2Top from "@/components/LinkBackToAdmin2Top";
+import { STORAGE_ROOT } from "@/lib/storageImages";
 
 export default function PastPostsAdminPage() {
   return (
@@ -13,7 +14,7 @@ export default function PastPostsAdminPage() {
       <AdminBlogEditor
         collectionName="pastPosts"
         heading="過去の茶会紹介"
-        storagePath="images/past-posts"
+        storagePath={`${STORAGE_ROOT}/past-posts`}
       />
     </main>
   );
