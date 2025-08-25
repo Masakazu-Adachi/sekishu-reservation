@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import FindDomNodeShim from "./FindDomNodeShim";
+import "./react-dom-finddomnode-polyfill";
 
 export const metadata: Metadata = {
   title: "石州流野村派 茶会行事 予約サイト",
@@ -32,7 +32,6 @@ export default function RootLayout({
         `}</style>
       </head>
       <body className={`with-noto-serif font-serif antialiased`}>
-        <FindDomNodeShim />
         {children}
       </body>
     </html>
