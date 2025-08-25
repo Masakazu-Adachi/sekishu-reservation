@@ -61,26 +61,30 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const inputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<ReactQuillType | null>(null);
+  const [isQuillReady, setIsQuillReady] = useState(false); // ← 追加：登録完了フラグ
 
-  // 画像リサイズモジュールはクライアント実行時にだけ登録（SSR/SSGで評価させない）
+  // 画像リサイズモジュールはクライアント実行時にだけ登録し、完了までエディタを描画しない
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [QuillMod, IRM] = await Promise.all([
-          import("quill"),
-          import("quill-image-resize-module"),
-        ]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Quill: any = (QuillMod as any).default || QuillMod;
+        // 先に登録が確実に終わるよう、完了後にフラグを立てる
+        const QuillMod = await import("quill");
+        const IRM = await import("quill-image-resize-module");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Quill: any = (QuillMod as any).default ?? QuillMod;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ImageResize: any = (IRM as any).default ?? IRM;
         if (!mounted) return;
         if (!Quill.__IMAGE_RESIZE_REGISTERED__) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ImageResize = (IRM as any).default || IRM;
           Quill.register("modules/imageResize", ImageResize);
           Quill.__IMAGE_RESIZE_REGISTERED__ = true;
         }
-      } catch {}
+        setIsQuillReady(true);
+      } catch {
+        // 失敗してもエディタ自体は使えるようにする
+        setIsQuillReady(true);
+      }
     })();
     return () => { mounted = false; };
   }, []);
@@ -149,11 +153,13 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       },
     },
     clipboard: { matchVisual: false },
-    // 画像リサイズモジュール（上の useEffect で登録済み）
-    imageResize: {
-      modules: ["Resize", "DisplaySize", "Toolbar"],
-    },
-  }), [storagePath]);
+    // 画像リサイズは登録完了後のみ有効化（未登録時に参照すると落ちるため）
+    ...(isQuillReady ? {
+      imageResize: {
+        modules: ["Resize", "DisplaySize", "Toolbar"],
+      }
+    } : {})
+  }), [storagePath, isQuillReady]);
 
   const formats = useMemo(() => [
     "header",
@@ -266,15 +272,18 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           placeholder="タイトル"
           className="border p-2 w-full mb-2"
         />
-        <ReactQuill
-          ref={quillRef}
-          value={body}
-          onChange={handleChange}
-          modules={modules}
-          formats={formats}
-          placeholder="ここに本文を入力してください…"
-          className="mb-2"
-        />
+        {/* 登録完了まではエディタを描画しない（初期化順序の競合を避ける） */}
+        {isQuillReady && (
+          <ReactQuill
+            ref={quillRef}
+            value={body}
+            onChange={handleChange}
+            modules={modules}
+            formats={formats}
+            placeholder="ここに本文を入力してください…"
+            className="mb-2"
+          />
+        )}
         <input
           type="file"
           accept="image/*"
