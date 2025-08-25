@@ -63,23 +63,40 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const quillRef = useRef<ReactQuillType | null>(null);
   const [isQuillReady, setIsQuillReady] = useState(false); // ← 追加：登録完了フラグ
 
-  // 画像リサイズモジュールはクライアント実行時にだけ登録し、完了までエディタを描画しない
+  // 画像リサイズは「ReactQuill が使う Quill」に登録。完了まで描画しない。
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        // 先に登録が確実に終わるよう、完了後にフラグを立てる
-        const QuillMod = await import("quill");
-        const IRM = await import("quill-image-resize-module");
+        // 1) react-quill から同一インスタンスの Quill を取得（なければ quill を fallback）
+        const [ReactQuillMod, IRM] = await Promise.all([
+          import("react-quill"),
+          import("quill-image-resize-module"),
+        ]);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Quill: any = (QuillMod as any).default ?? QuillMod;
+        const RQ: any = (ReactQuillMod as any).default ?? ReactQuillMod;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ImageResize: any = (IRM as any).default ?? IRM;
-        if (!mounted) return;
-        if (!Quill.__IMAGE_RESIZE_REGISTERED__) {
-          Quill.register("modules/imageResize", ImageResize);
-          Quill.__IMAGE_RESIZE_REGISTERED__ = true;
+        let QuillAny: any = (ReactQuillMod as any).Quill;
+        if (!QuillAny) {
+          const QMod = await import("quill");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          QuillAny = (QMod as any).default ?? QMod;
         }
+        // 2) いろんな発火形態に耐える ImageResize 抽出
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let IR: any = (IRM as any).default ?? (IRM as any).ImageResize ?? IRM;
+        if (IR && IR.default) IR = IR.default;
+        // 3) ReactQuill 側の Quill に登録（異なる個体なら両方に登録）
+        if (!mounted) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const register = (Q: any) => {
+          if (Q && typeof Q.register === "function") {
+            try { Q.register("modules/imageResize", IR); } catch {}
+          }
+        };
+        if (RQ?.Quill && RQ.Quill !== QuillAny) register(RQ.Quill);
+        register(QuillAny);
+        // 4) 準備完了
         setIsQuillReady(true);
       } catch {
         // 失敗してもエディタ自体は使えるようにする
@@ -153,7 +170,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       },
     },
     clipboard: { matchVisual: false },
-    // 画像リサイズは登録完了後のみ有効化（未登録時に参照すると落ちるため）
+    // 画像リサイズは登録完了後のみ有効化（未登録参照で落ちるため）
     ...(isQuillReady ? {
       imageResize: {
         modules: ["Resize", "DisplaySize", "Toolbar"],
