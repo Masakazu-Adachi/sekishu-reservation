@@ -2,7 +2,8 @@
 
 // ポリフィルは最速で適用
 import "@/app/react-dom-finddomnode-polyfill";
-import { useState, useEffect, useRef, useMemo } from "react";
+import "@/app/quill-registers";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type ReactQuillType from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -62,6 +63,22 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
 // ReactQuill をクライアントだけで読み込む（SSG/SSR では import されない）
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
+  // 軽量デバウンス
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function useDebouncedCallback<T extends (...args: any[]) => void>(fn: T, delay: number) {
+    const fnRef = useRef(fn);
+    useEffect(() => {
+      fnRef.current = fn;
+    }, [fn]);
+    return useMemo(() => {
+      let t: ReturnType<typeof setTimeout> | undefined;
+      return (...args: Parameters<T>) => {
+        if (t) clearTimeout(t);
+        t = setTimeout(() => fnRef.current(...args), delay);
+      };
+    }, [delay]);
+  }
+
 
   const modules = useMemo(() => ({
     toolbar: {
@@ -109,26 +126,28 @@ const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
       },
     },
     clipboard: { matchVisual: false },
+    imageResize: {
+      modules: ["Resize", "DisplaySize", "Toolbar"],
+    },
   }), [storagePath]);
 
-  const formats = useMemo(
-    () => [
-      "header",
-      "font",
-      "size",
-      "bold",
-      "italic",
-      "underline",
-      "strike",
-      "color",
-      "background",
-      "align",
-      "link",
-      "image",
-      "clean",
-    ],
-    []
-  );
+  const formats = useMemo(() => [
+    "header",
+    "font", "size",
+    "bold", "italic", "underline", "strike",
+    "color", "background",
+    "align",
+    "link", "image",
+    "list", "blockquote", "code-block",
+  ], []);
+
+  const debouncedSave = useDebouncedCallback((html: string) => {
+    setBody(html);
+  }, 800);
+
+  const handleChange = useCallback((html: string) => {
+    debouncedSave(html);
+  }, [debouncedSave]);
 
   const fetchPosts = async () => {
     const q = query(
@@ -226,9 +245,10 @@ const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
         <ReactQuill
           ref={quillRef}
           value={body}
-          onChange={setBody}
+          onChange={handleChange}
           modules={modules}
           formats={formats}
+          placeholder="ここに本文を入力してください…"
           className="mb-2"
         />
         <input
