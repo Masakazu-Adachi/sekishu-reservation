@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./quill-content.css";
 import "./react-dom-finddomnode-polyfill";
 
 export const metadata: Metadata = {

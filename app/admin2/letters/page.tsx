@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 import AdminBlogEditor from "@/components/AdminBlogEditor";
 import LinkBackToAdmin2Top from "@/components/LinkBackToAdmin2Top";
+import { STORAGE_ROOT } from "@/lib/storageImages";
 
 export default function LettersAdminPage() {
   return (
@@ -13,7 +14,7 @@ export default function LettersAdminPage() {
       <AdminBlogEditor
         collectionName="letters"
         heading="通信ページ"
-        storagePath="images/letters"
+        storagePath={`${STORAGE_ROOT}/letters`}
       />
     </main>
   );

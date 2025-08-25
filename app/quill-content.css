@@ -1,0 +1,27 @@
+.ql-align-center {
+  text-align: center;
+}
+.ql-align-right {
+  text-align: right;
+}
+.ql-align-justify {
+  text-align: justify;
+}
+.ql-align-left {
+  text-align: left;
+}
+.ql-font-serif {
+  font-family: "Noto Serif JP", serif;
+}
+.ql-font-sans-serif {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Noto Sans JP", sans-serif;
+}
+.ql-font-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+    "Noto Sans Mono", monospace;
+}
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+}
