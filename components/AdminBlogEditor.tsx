@@ -61,28 +61,42 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const inputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<ReactQuillType | null>(null);
-  const [isQuillReady, setIsQuillReady] = useState(false); // ← 追加：登録完了フラグ
+  const [isQuillReady, setIsQuillReady] = useState(false); // 登録完了フラグ
 
-  // 画像リサイズモジュールはクライアント実行時にだけ登録し、完了までエディタを描画しない
+  // 画像リサイズ⇒ blot-formatter に切替。
+  // 「ReactQuill が使う Quill」に登録。完了まで描画しない。
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        // 先に登録が確実に終わるよう、完了後にフラグを立てる
-        const QuillMod = await import("quill");
-        const IRM = await import("quill-image-resize-module");
+        const [ReactQuillMod, BFMod] = await Promise.all([
+          import("react-quill"),
+          import("quill-blot-formatter"),
+        ]);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Quill: any = (QuillMod as any).default ?? QuillMod;
+        const rqAny: any = (ReactQuillMod as any).default ?? ReactQuillMod;
+        // ReactQuillが保持するQuill（無ければ quill を fallback）
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ImageResize: any = (IRM as any).default ?? IRM;
-        if (!mounted) return;
-        if (!Quill.__IMAGE_RESIZE_REGISTERED__) {
-          Quill.register("modules/imageResize", ImageResize);
-          Quill.__IMAGE_RESIZE_REGISTERED__ = true;
+        let QuillAny: any = (ReactQuillMod as any).Quill;
+        if (!QuillAny) {
+          const QMod = await import("quill");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          QuillAny = (QMod as any).default ?? QMod;
         }
+        // blot-formatter のクラス
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const BlotFormatter: any = (BFMod as any).default ?? BFMod;
+        if (!mounted) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const register = (Q: any) => {
+          if (Q && typeof Q.register === "function") {
+            try { Q.register("modules/blotFormatter", BlotFormatter); } catch {}
+          }
+        };
+        if (rqAny?.Quill && rqAny.Quill !== QuillAny) register(rqAny.Quill);
+        register(QuillAny);
         setIsQuillReady(true);
       } catch {
-        // 失敗してもエディタ自体は使えるようにする
         setIsQuillReady(true);
       }
     })();
@@ -153,12 +167,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       },
     },
     clipboard: { matchVisual: false },
-    // 画像リサイズは登録完了後のみ有効化（未登録時に参照すると落ちるため）
-    ...(isQuillReady ? {
-      imageResize: {
-        modules: ["Resize", "DisplaySize", "Toolbar"],
-      }
-    } : {})
+    // 画像リサイズの代わりに blot-formatter を使用（登録完了後のみ）
+    ...(isQuillReady ? { blotFormatter: {} } : {})
   }), [storagePath, isQuillReady]);
 
   const formats = useMemo(() => [
