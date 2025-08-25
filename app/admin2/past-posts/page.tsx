@@ -1,7 +1,5 @@
-"use client";
-
-// 念のためこちらも SSG を止める（同じ Editor を使うため）
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import AdminBlogEditor from "@/components/AdminBlogEditor";
 import LinkBackToAdmin2Top from "@/components/LinkBackToAdmin2Top";
