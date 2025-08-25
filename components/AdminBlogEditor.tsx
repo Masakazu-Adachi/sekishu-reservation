@@ -2,7 +2,7 @@
 
 // ポリフィルは最速で適用
 import "@/app/react-dom-finddomnode-polyfill";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type ReactQuillType from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -16,8 +16,10 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { uploadImage } from "@/lib/uploadImage";
+import { uploadImageToStorage } from "@/lib/storageImages";
 import type { BlogPost } from "@/types";
 
 interface Props {
@@ -42,11 +44,11 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
 
-  const modules = {
+  const modules = useMemo(() => ({
     toolbar: {
       container: [
         [{ header: [1, 2, 3, false] }],
-        [{ font: [] }],
+        [{ font: ["sans-serif", "serif", "monospace"] }],
         [{ size: [] }],
         ["bold", "italic", "underline", "strike"],
         [{ color: [] }, { background: [] }],
@@ -57,47 +59,57 @@ const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
       handlers: {
         image: () => {
           const input = document.createElement("input");
-          input.setAttribute("type", "file");
-          input.setAttribute("accept", "image/*");
-          input.click();
+          input.type = "file";
+          input.accept = "image/*";
           input.onchange = async () => {
             const file = input.files?.[0];
             if (!file) return;
             try {
-              const url = await uploadImage(
-                file,
-                `${storagePath}/${Date.now()}-${file.name}`
-              );
+              setUploading(true);
+              const { url } = await uploadImageToStorage(file, storagePath, {
+                uploadedBy: "admin",
+              });
               const editor = quillRef.current?.getEditor();
-              const range = editor?.getSelection(true);
-              if (editor && range) {
-                editor.insertEmbed(range.index, "image", url);
+              if (editor) {
+                const range =
+                  editor.getSelection(true) ?? {
+                    index: editor.getLength(),
+                    length: 0,
+                  };
+                editor.insertEmbed(range.index, "image", url, "user");
+                editor.setSelection(range.index + 1, 0, "user");
+              } else {
+                setBody((prev) => `${prev}\n<p><img src="${url}" alt="" /></p>\n`);
               }
-            } catch (err) {
-              console.error(err);
-              alert("画像のアップロードに失敗しました");
+            } finally {
+              setUploading(false);
             }
           };
+          input.click();
         },
       },
     },
-  };
+    clipboard: { matchVisual: false },
+  }), [storagePath]);
 
-  const formats = [
-    "header",
-    "font",
-    "size",
-    "bold",
-    "italic",
-    "underline",
-    "strike",
-    "color",
-    "background",
-    "align",
-    "link",
-    "image",
-    "clean",
-  ];
+  const formats = useMemo(
+    () => [
+      "header",
+      "font",
+      "size",
+      "bold",
+      "italic",
+      "underline",
+      "strike",
+      "color",
+      "background",
+      "align",
+      "link",
+      "image",
+      "clean",
+    ],
+    []
+  );
 
   const fetchPosts = async () => {
     const q = query(
@@ -125,19 +137,34 @@ const ReactQuill = dynamic(() => import("react-quill"), { ssr: false }) as any;
           setProgress
         );
       }
+      const editor = quillRef.current?.getEditor();
+      const delta = editor?.getContents();
+      const used: string[] = [];
+      if (delta) {
+        for (const op of delta.ops ?? []) {
+          if (op.insert && typeof op.insert === "object" && "image" in op.insert) {
+            used.push((op.insert as { image: string }).image);
+          }
+        }
+      }
+      const images = Array.from(new Set(used));
       if (editingId) {
         const original = posts.find((p) => p.id === editingId);
         await updateDoc(doc(db, collectionName, editingId), {
           title,
           body,
           imageUrl: imageUrl || original?.imageUrl || "",
+          images,
+          updatedAt: serverTimestamp(),
         });
       } else {
         await addDoc(collection(db, collectionName), {
           title,
           body,
           imageUrl,
+          images,
           createdAt: new Date().toISOString(),
+          updatedAt: serverTimestamp(),
         });
       }
       setTitle("");

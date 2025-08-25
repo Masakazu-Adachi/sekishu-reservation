@@ -38,6 +38,13 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold mb-2">✉ 通信ページ</h2>
           <p>通信ページの記事を投稿します</p>
         </div>
+        <div
+          className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
+          onClick={() => router.push("/admin2/images")}
+        >
+          <h2 className="text-xl font-semibold mb-2">🖼 画像管理</h2>
+          <p>投稿で使用する画像を管理します</p>
+        </div>
       </div>
     </main>
   );
