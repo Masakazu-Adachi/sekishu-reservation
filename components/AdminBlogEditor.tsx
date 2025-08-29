@@ -21,10 +21,12 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
+  deleteField,
 } from "firebase/firestore";
 import { uploadImage } from "@/lib/uploadImage";
 import { uploadImageToStorage } from "@/lib/storageImages";
 import type { BlogPost } from "@/types";
+import { deltaToHtml } from "@/lib/quillDelta";
 
 interface Props {
   collectionName: string;
@@ -443,7 +445,20 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       orderBy("createdAt", sortOrder)
     );
     const snapshot = await getDocs(q);
-    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as Omit<BlogPost,"id">) }));
+    const data = await Promise.all(
+      snapshot.docs.map(async (d) => {
+        const p = { id: d.id, ...(d.data() as Omit<BlogPost, "id">) };
+        if (!p.body && p.bodyHtmlUrl) {
+          try {
+            p.body = await (await fetch(p.bodyHtmlUrl)).text();
+          } catch {}
+        }
+        if (p.bodyDelta) {
+          p.body = deltaToHtml(p.bodyDelta);
+        }
+        return p;
+      })
+    );
     setPosts(data);
   };
 
@@ -455,7 +470,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const handleSubmit = async () => {
     setUploading(true);
     let imageUrl = "";
-    let byteSize = 0;
+    let deltaSize = 0;
+    let htmlSize = 0;
     try {
       if (file) {
         imageUrl = await uploadImage(
@@ -467,21 +483,20 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       const editor = quillRef.current?.getEditor();
       if (!editor) throw new Error("editor not ready");
       await normalizeDataImagesInEditor(editor, storagePath);
-      const html = editor.root.innerHTML ?? "";
-      const delta = editor.clipboard.convert(html);
-      const bodyDelta = delta && "ops" in delta ? { ops: delta.ops } : null;
+      const delta = editor.getContents();
+      const bodyDelta = { ops: delta.ops };
       if (!isPlainJSON(bodyDelta)) {
         console.error("bodyDelta is not serializable JSON", bodyDelta);
         showToast("保存に失敗しました");
         setUploading(false);
         return;
       }
-      console.log(
-        "bodyDelta check",
-        typeof bodyDelta === "object" && Array.isArray(bodyDelta?.ops)
-      );
-      byteSize = new Blob([html]).size;
-      console.log("body byteSize", byteSize);
+      const html = editor.root.innerHTML ?? "";
+      deltaSize = new Blob([JSON.stringify(bodyDelta)]).size;
+      htmlSize = new Blob([html]).size;
+      if (deltaSize > 800000) {
+        console.warn("delta size exceeds 800kB", { deltaSize });
+      }
       const used: string[] = [];
       for (const op of delta.ops ?? []) {
         if (op.insert && typeof op.insert === "object") {
@@ -495,7 +510,6 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       const images = Array.from(new Set(used));
       const data = {
         title,
-        body: html,
         bodyDelta,
         imageUrl,
         images,
@@ -507,6 +521,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           await updateDoc(doc(db, collectionName, editingId), {
             ...data,
             imageUrl: imageUrl || original?.imageUrl || "",
+            body: deleteField(),
           });
         } else {
           await addDoc(collection(db, collectionName), {
@@ -516,7 +531,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         }
       } catch (e) {
         // Firestore エラーを詳細にログ
-        console.error("Firestore save error", e, { byteSize });
+        console.error("Firestore save error", e, { deltaSize, htmlSize });
         throw e;
       }
       setTitle("");
@@ -527,7 +542,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       await fetchPosts();
       alert(editingId ? "投稿を更新しました" : "投稿を保存しました");
     } catch (err) {
-      console.error(err, { byteSize });
+      console.error(err, { deltaSize, htmlSize });
       showToast("保存に失敗しました");
     } finally {
       setUploading(false);
@@ -636,10 +651,20 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
                 </button>
                 <button
                   className="text-xs text-blue-600"
-                  onClick={() => {
+                  onClick={async () => {
                     setEditingId(post.id);
                     setTitle(post.title);
-                    setBody(post.body);
+                    if (post.bodyDelta) {
+                      setBody(deltaToHtml(post.bodyDelta));
+                    } else if (post.bodyHtmlUrl) {
+                      try {
+                        setBody(await (await fetch(post.bodyHtmlUrl)).text());
+                      } catch {
+                        setBody(post.body || "");
+                      }
+                    } else {
+                      setBody(post.body || "");
+                    }
                     if (inputRef.current) inputRef.current.value = "";
                   }}
                 >
@@ -653,7 +678,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
             )}
             <div
               className="text-sm"
-              dangerouslySetInnerHTML={{ __html: post.body }}
+              dangerouslySetInnerHTML={{ __html: post.bodyDelta ? deltaToHtml(post.bodyDelta) : post.body || "" }}
             />
           </div>
         ))}
