@@ -43,7 +43,7 @@ function validateImage(file: File): boolean {
     return false;
   }
   const ext = file.name.split(".").pop()?.toLowerCase();
-  if (!ext || !["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext)) {
+  if (!ext || !["jpg", "jpeg", "png", "gif", "webp", "svg", "svgz"].includes(ext)) {
     alert("対応していない画像形式です");
     return false;
   }
@@ -213,6 +213,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
               const html = buildImagesHtml(urls);
               editor.clipboard.dangerouslyPasteHTML(range.index, html);
               editor.setSelection(range.index + 1, 0, "user");
+            } else if (urls.length === 0) {
+              showToastRef.current("画像のアップロードに失敗しました");
             }
             if (toolbarBtn) toolbarBtn.disabled = false;
             setUploading(false);

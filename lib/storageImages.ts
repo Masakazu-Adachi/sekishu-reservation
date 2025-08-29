@@ -7,8 +7,38 @@ import {
   list,
   deleteObject,
 } from "firebase/storage";
+import type { StorageReference } from "firebase/storage";
 import { v4 as uuid } from "uuid";
 import { IMAGE_MAX_SIZE } from "./validateImage";
+
+const EXT_TO_TYPE: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  svgz: "image/svg+xml",
+};
+
+function inferContentType(file: File, ext: string) {
+  if (file.type?.startsWith("image/")) return file.type;
+  return EXT_TO_TYPE[ext] ?? "application/octet-stream";
+}
+
+async function retryGetDownloadURL(r: StorageReference) {
+  const delays = [200, 400, 800, 1600, 3200];
+  let lastErr: unknown;
+  for (const d of delays) {
+    try {
+      return await getDownloadURL(r);
+    } catch (e) {
+      lastErr = e;
+      await new Promise(res => setTimeout(res, d));
+    }
+  }
+  throw lastErr;
+}
 
 export type UploadResult = { url: string; path: string };
 
@@ -23,7 +53,7 @@ export async function uploadImageToStorage(
     throw new Error("File too large");
   }
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const contentType = ext === "png" ? "image/png" : "image/jpeg";
+  const contentType = inferContentType(file, ext);
   const storage = getStorage();
   const id = uuid();
   const path = `${basePath}/${id}.${ext}`;
@@ -38,7 +68,7 @@ export async function uploadImageToStorage(
     },
   };
   await uploadBytes(r, file, metadata);
-  const url = await getDownloadURL(r);
+  const url = await retryGetDownloadURL(r);
   return { url, path };
 }
 
