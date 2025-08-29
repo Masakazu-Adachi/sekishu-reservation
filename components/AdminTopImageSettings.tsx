@@ -120,7 +120,7 @@ export default function AdminTopImageSettings() {
       <button
         onClick={handleSave}
         disabled={uploading}
-        className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white px-4 py-2 rounded disabled:opacity-50"
+        className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded disabled:opacity-50"
       >
         {uploading ? `保存中...${progress.toFixed(0)}%` : "保存"}
       </button>
