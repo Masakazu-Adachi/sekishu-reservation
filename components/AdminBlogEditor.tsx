@@ -102,6 +102,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   useEffect(() => {
     showToastRef.current = showToast;
   }, [showToast]);
+  const isPastingRef = useRef(false);
 
   // 画像リサイズ⇒ blot-formatter に切替。
   // 「ReactQuill が使う Quill」に登録。完了まで描画しない。
@@ -161,72 +162,78 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   }
 
 
-  const modules = useMemo(() => ({
-    toolbar: {
-      container: [
-        [{ header: [1, 2, 3, false] }],
-        [{ font: ["sans-serif", "serif", "monospace"] }],
-        [{ size: [] }],
-        ["bold", "italic", "underline", "strike"],
-        [{ color: [] }, { background: [] }],
-        [{ align: [] }],
-        ["link", "image"],
-        ["clean"],
-      ],
-      handlers: {
-        image: () => {
-          if (uploadingRef.current) return;
-          const input = document.createElement("input");
-          input.type = "file";
-          input.accept = "image/*";
-          input.multiple = true;
-          input.onchange = async () => {
-            const files = input.files ? Array.from(input.files) : [];
-            const validFiles = files.filter(f => validateImage(f));
-            if (!validFiles.length) return;
-            setUploading(true);
-            const editor = quillRef.current?.getEditor();
-            const toolbarBtn = editor
-              ?.getModule("toolbar")
-              ?.container.querySelector("button.ql-image") as HTMLButtonElement | null;
-            if (toolbarBtn) toolbarBtn.disabled = true;
-            const urls: string[] = [];
-            for (const f of validFiles) {
-              try {
-                const { url } = await uploadImageToStorage(f, storagePath, {
-                  uploadedBy: "admin",
-                });
-                if (url) urls.push(url);
-              } catch (err) {
-                console.error(err);
-                showToastRef.current("画像のアップロードに失敗しました");
-              }
-            }
-            // eslint-disable-next-line no-console
-            console.log("uploaded urls:", urls);
-            if (urls.length > 0 && editor) {
-              const range =
-                editor.getSelection(true) ?? {
-                  index: editor.getLength(),
-                  length: 0,
-                };
-              const html = buildImagesHtml(urls);
-              editor.clipboard.dangerouslyPasteHTML(range.index, html);
-              editor.setSelection(range.index + 1, 0, "user");
-            } else if (urls.length === 0) {
-              showToastRef.current("画像のアップロードに失敗しました");
-            }
-            if (toolbarBtn) toolbarBtn.disabled = false;
-            setUploading(false);
-          };
-          input.click();
-        },
+  const modules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          [{ font: ["sans-serif", "serif", "monospace"] }],
+          [{ size: [] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ color: [] }, { background: [] }],
+          [{ align: [] }],
+          ["link", "image"],
+          ["clean"],
+        ],
       },
-    },
-    clipboard: { matchVisual: false },
-    // 画像リサイズの代わりに blot-formatter を使用（登録完了後のみ）
-    ...(isQuillReady ? { blotFormatter: {} } : {})
-  }), [storagePath, isQuillReady]);
+      clipboard: { matchVisual: false },
+      // 画像リサイズの代わりに blot-formatter を使用（登録完了後のみ）
+      ...(isQuillReady ? { blotFormatter: {} } : {}),
+    }),
+    [isQuillReady]
+  );
+
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const toolbar = editor.getModule("toolbar");
+    if (!toolbar) return;
+    const onImageClick = () => {
+      if (uploadingRef.current) return;
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      input.multiple = true;
+      const savedIndex = editor.getSelection()?.index ?? editor.getLength();
+      input.onchange = async () => {
+        const files = Array.from(input.files ?? []);
+        const valid = files.filter(validateImage);
+        if (!valid.length) return;
+        uploadingRef.current = true;
+        setUploading(true);
+        editor.focus();
+        const urls: string[] = [];
+        for (const f of valid) {
+          try {
+            const { url } = await uploadImageToStorage(f, storagePath, {
+              uploadedBy: "admin",
+            });
+            if (url) urls.push(url);
+          } catch (err) {
+            console.error(err);
+            showToastRef.current("画像のアップロードに失敗しました");
+          }
+        }
+        if (urls.length) {
+          isPastingRef.current = true;
+          const range =
+            editor.getSelection(true) ?? { index: savedIndex, length: 0 };
+          const html = buildImagesHtml(urls);
+          editor.clipboard.dangerouslyPasteHTML(range.index, html);
+          editor.setSelection(range.index + 1, 0, "user");
+          requestAnimationFrame(() => {
+            isPastingRef.current = false;
+          });
+        } else {
+          showToastRef.current("画像のアップロードに失敗しました");
+        }
+        setUploading(false);
+        uploadingRef.current = false;
+      };
+      input.click();
+    };
+    toolbar.addHandler("image", onImageClick);
+  }, [storagePath, isQuillReady]);
 
   const formats = useMemo(() => [
     "header",
@@ -242,9 +249,13 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     setBody(html);
   }, 800);
 
-  const handleChange = useCallback((html: string) => {
-    debouncedSave(html);
-  }, [debouncedSave]);
+  const handleChange = useCallback(
+    (html: string) => {
+      if (isPastingRef.current) return;
+      debouncedSave(html);
+    },
+    [debouncedSave]
+  );
 
   const fetchPosts = async () => {
     const q = query(
