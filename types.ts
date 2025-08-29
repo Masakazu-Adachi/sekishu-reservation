@@ -60,7 +60,7 @@ export interface BlogPost {
   id: string;
   title: string;
   body: string; // HTML 文字列
-  bodyDelta?: unknown; // Quill Delta JSON
+  bodyDelta?: { ops: unknown[] } | null; // Quill Delta JSON
   createdAt: string;
   imageUrl?: string;
   images?: string[];

@@ -84,6 +84,15 @@ async function normalizeDataImagesInEditor(editor: Quill, storagePath: string) {
   }
 }
 
+function isPlainJSON(v: unknown): boolean {
+  try {
+    JSON.stringify(v);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 
 export default function AdminBlogEditor({ collectionName, heading, storagePath }: Props) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -460,6 +469,17 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       await normalizeDataImagesInEditor(editor, storagePath);
       const html = editor.root.innerHTML ?? "";
       const delta = editor.clipboard.convert(html);
+      const bodyDelta = delta && "ops" in delta ? { ops: delta.ops } : null;
+      if (!isPlainJSON(bodyDelta)) {
+        console.error("bodyDelta is not serializable JSON", bodyDelta);
+        showToast("保存に失敗しました");
+        setUploading(false);
+        return;
+      }
+      console.log(
+        "bodyDelta check",
+        typeof bodyDelta === "object" && Array.isArray(bodyDelta?.ops)
+      );
       byteSize = new Blob([html]).size;
       console.log("body byteSize", byteSize);
       const used: string[] = [];
@@ -476,7 +496,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       const data = {
         title,
         body: html,
-        bodyDelta: delta,
+        bodyDelta,
         imageUrl,
         images,
         updatedAt: serverTimestamp(),
