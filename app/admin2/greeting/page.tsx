@@ -5,10 +5,15 @@ import LinkBackToAdmin2Top from "@/components/LinkBackToAdmin2Top";
 import RichTextEditor from "@/components/RichTextEditor";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { STORAGE_ROOT } from "@/lib/storageImages";
 
 export default function GreetingPage() {
   const [html, setHtml] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,10 +42,10 @@ export default function GreetingPage() {
   const handleSave = async () => {
     try {
       await setDoc(doc(db, "settings", "publicSite"), { greetingHtml: html }, { merge: true });
-      alert("ごあいさつを保存しました！");
+      showToast("ごあいさつを保存しました！");
     } catch (err) {
       console.error(err);
-      alert("保存に失敗しました");
+      showToast("保存に失敗しました");
     }
   };
 
@@ -48,17 +53,18 @@ export default function GreetingPage() {
     <main className="p-6 max-w-xl mx-auto">
       <LinkBackToAdmin2Top />
       <h1 className="text-2xl font-bold mb-4">ごあいさつ設定</h1>
-      <RichTextEditor
-        value={html}
-        onChange={setHtml}
-        storagePath={`${STORAGE_ROOT}/greeting-editor`}
-      />
+      <RichTextEditor value={html} onChange={setHtml} />
       <button
         onClick={handleSave}
         className="mt-4 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded"
       >
         保存
       </button>
+      {toast && (
+        <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded">
+          {toast}
+        </div>
+      )}
     </main>
   );
 }
