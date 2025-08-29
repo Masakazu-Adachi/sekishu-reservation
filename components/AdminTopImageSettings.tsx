@@ -1,75 +1,83 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { db, storage } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function AdminTopImageSettings() {
   const [imageUrl, setImageUrl] = useState("");
+  const [alt, setAlt] = useState("");
+  const [storagePath, setStoragePath] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchImageUrl = async () => {
-      const refSite = doc(db, "settings", "site");
-      const snap = await getDoc(refSite);
+    const fetchImage = async () => {
+      let refDoc = doc(db, "settings", "publicSite");
+      let snap = await getDoc(refDoc);
+      if (!snap.exists()) {
+        refDoc = doc(db, "settings", "site");
+        snap = await getDoc(refDoc);
+      }
       if (snap.exists()) {
-        setImageUrl(snap.data().heroImageUrl || "");
+        const data = snap.data();
+        if (data.heroImageUrl) setImageUrl(data.heroImageUrl);
+        if (data.heroImageAlt) setAlt(data.heroImageAlt);
+        if (data.heroImageStoragePath) setStoragePath(data.heroImageStoragePath);
       }
     };
-    fetchImageUrl();
+    fetchImage();
   }, []);
 
-  const handleFileSelect = () => {
-    inputRef.current?.click();
+  const handleFileChange = (f: File) => {
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) handleFileChange(f);
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFileChange(f);
+  };
+
+  const handleSave = async () => {
     setUploading(true);
-    setProgress(0);
-
     try {
-      const storageRef = ref(storage, `images/hero-images/${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          setProgress((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+      let downloadUrl = imageUrl;
+      let path = storagePath;
+      if (file) {
+        path = `images/hero-images/${uuidv4()}-${file.name}`;
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, file);
+        downloadUrl = await getDownloadURL(storageRef);
+      }
+      await setDoc(
+        doc(db, "settings", "publicSite"),
+        {
+          heroImageUrl: downloadUrl,
+          heroImageAlt: alt,
+          heroImageStoragePath: path,
         },
-        (error) => {
-          console.error(error);
-          alert("アップロードに失敗しました");
-          setUploading(false);
-        },
-        async () => {
-          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-          await setDoc(
-            doc(db, "settings", "site"),
-            { heroImageUrl: downloadUrl },
-            { merge: true }
-          );
-          setImageUrl(downloadUrl);
-          setUploading(false);
-          setFile(null);
-          setProgress(0);
-          alert("画像をアップロードし、URLを保存しました！");
-        }
+        { merge: true }
       );
+      setImageUrl(downloadUrl);
+      setStoragePath(path);
+      setFile(null);
+      setPreview("");
+      alert("保存しました");
     } catch (err) {
       console.error(err);
-      alert("アップロードでエラーが発生しました");
+      alert("保存に失敗しました");
+    } finally {
       setUploading(false);
     }
   };
@@ -77,35 +85,41 @@ export default function AdminTopImageSettings() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">トップページ画像設定</h1>
-
-      {imageUrl && (
-        <img src={imageUrl} alt="現在のトップページ画像" className="w-full mb-4 rounded" />
+      {(preview || imageUrl) && (
+        <img
+          src={preview || imageUrl}
+          alt="プレビュー"
+          className="w-full mb-4 rounded"
+        />
       )}
-
-      <div className="flex items-center gap-4 mb-4">
+      <div
+        className="border-2 border-dashed p-4 text-center mb-4 cursor-pointer"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+      >
+        {file ? file.name : "ここにドラッグ＆ドロップまたはクリックして選択"}
         <input
           type="file"
           accept="image/*"
-          onChange={handleFileChange}
           ref={inputRef}
           className="hidden"
+          onChange={handleInputChange}
         />
-        <button
-          type="button"
-          onClick={handleFileSelect}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded shadow"
-        >
-          ファイルを選択
-        </button>
-        {file && <span className="truncate max-w-xs">{file.name}</span>}
       </div>
-
+      <input
+        type="text"
+        value={alt}
+        onChange={(e) => setAlt(e.target.value)}
+        placeholder="画像の説明 (alt)"
+        className="w-full p-2 border rounded mb-4"
+      />
       <button
-        onClick={handleUpload}
-        disabled={!file || uploading}
+        onClick={handleSave}
+        disabled={uploading}
         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
       >
-        {uploading ? `アップロード中...${progress.toFixed(0)}%` : "画像をアップロードして設定"}
+        {uploading ? "保存中..." : "保存"}
       </button>
     </div>
   );
