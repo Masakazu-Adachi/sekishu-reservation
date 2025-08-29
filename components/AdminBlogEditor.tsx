@@ -50,6 +50,34 @@ function validateImage(file: File): boolean {
   return true;
 }
 
+async function dataUrlOrBlobToBlob(src: string): Promise<Blob> {
+  const res = await fetch(src);
+  return res.blob();
+}
+
+async function normalizeImagesBeforeSave(
+  html: string,
+  storagePath: string
+): Promise<string> {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const imgs = Array.from(doc.querySelectorAll("img"));
+  for (const img of imgs) {
+    const src = img.getAttribute("src") || "";
+    if (/^(data:|blob:)/.test(src)) {
+      try {
+        const blob = await dataUrlOrBlobToBlob(src);
+        const { url } = await uploadImageToStorage(blob, storagePath, {
+          uploadedBy: "admin",
+        });
+        img.setAttribute("src", url);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }
+  return doc.body.innerHTML;
+}
+
 
 export default function AdminBlogEditor({ collectionName, heading, storagePath }: Props) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -70,6 +98,15 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     setTimeout(() => setToast(null), 3000);
   }, []);
 
+  const uploadingRef = useRef(uploading);
+  const showToastRef = useRef(showToast);
+  const isPastingRef = useRef(false);
+  useEffect(() => {
+    uploadingRef.current = uploading;
+  }, [uploading]);
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
 
   useEffect(() => {
     if (!isQuillReady) return;
@@ -77,10 +114,33 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     if (!editor) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const QuillAny: any = editor.constructor;
-    editor.clipboard.addMatcher("IMG", (node, delta) => {
-      const width =
-        (node as HTMLElement).getAttribute("width") ||
-        (node as HTMLElement).style.width;
+    editor.clipboard.addMatcher("IMG", async (node, delta) => {
+      const el = node as HTMLElement;
+      const width = el.getAttribute("width") || el.style.width;
+      const src = el.getAttribute("src") || "";
+      if (/^(data:|blob:)/.test(src)) {
+        try {
+          const blob = await dataUrlOrBlobToBlob(src);
+          const { url } = await uploadImageToStorage(blob, storagePath, {
+            uploadedBy: "admin",
+          });
+          if (delta.ops) {
+            delta.ops = delta.ops.map(op => {
+              if (
+                op.insert &&
+                typeof op.insert === "object" &&
+                "image" in (op.insert as Record<string, unknown>)
+              ) {
+                return { insert: { image: url }, attributes: op.attributes };
+              }
+              return op;
+            });
+          }
+        } catch (e) {
+          console.error(e);
+          showToastRef.current("画像のアップロードに失敗しました");
+        }
+      }
       if (width && delta.ops) {
         delta.ops.forEach(op => {
           op.attributes = { ...(op.attributes ?? {}), width };
@@ -102,6 +162,48 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       }
       return delta;
     });
+
+    const dropHandler = async (e: DragEvent) => {
+      const files = Array.from(e.dataTransfer?.files ?? []).filter(f => f.type.startsWith("image/"));
+      if (!files.length) return;
+      e.preventDefault();
+      if (uploadingRef.current) return;
+      uploadingRef.current = true;
+      setUploading(true);
+      const savedIndex = editor.getSelection()?.index ?? editor.getLength();
+      const urls: string[] = [];
+      for (const f of files) {
+        if (!validateImage(f)) continue;
+        try {
+          const { url } = await uploadImageToStorage(f, storagePath, {
+            uploadedBy: "admin",
+          });
+          urls.push(url);
+        } catch (err) {
+          console.error(err);
+          showToastRef.current("画像のアップロードに失敗しました");
+        }
+      }
+      if (urls.length) {
+        isPastingRef.current = true;
+        const range = editor.getSelection(true) ?? { index: savedIndex, length: 0 };
+        if (urls.length === 1) {
+          editor.insertEmbed(range.index, "image", urls[0], "user");
+        } else {
+          const columns = urls.length === 2 ? 2 : urls.length === 3 ? 3 : 2;
+          editor.insertEmbed(range.index, "image-group", { urls, columns }, "user");
+        }
+        editor.setSelection(range.index + 1, 0, "user");
+        requestAnimationFrame(() => {
+          isPastingRef.current = false;
+        });
+      }
+      setUploading(false);
+      uploadingRef.current = false;
+    };
+
+    editor.root.addEventListener("drop", dropHandler);
+
     const handler = () => {
       const imgs = editor.root.querySelectorAll("img");
       imgs.forEach(img => {
@@ -113,18 +215,9 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     editor.on("text-change", handler);
     return () => {
       editor.off("text-change", handler);
+      editor.root.removeEventListener("drop", dropHandler);
     };
-  }, [isQuillReady]);
-
-  const uploadingRef = useRef(uploading);
-  useEffect(() => {
-    uploadingRef.current = uploading;
-  }, [uploading]);
-  const showToastRef = useRef(showToast);
-  useEffect(() => {
-    showToastRef.current = showToast;
-  }, [showToast]);
-  const isPastingRef = useRef(false);
+  }, [isQuillReady, storagePath, showToast]);
 
   // 画像リサイズ⇒ blot-formatter に切替。
   // 「ReactQuill が使う Quill」に登録。完了まで描画しない。
@@ -375,25 +468,22 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         );
       }
       const editor = quillRef.current?.getEditor();
-      const delta = editor?.getContents();
-      const html = editor?.root.innerHTML ?? "";
+      if (!editor) throw new Error("editor not ready");
+      let html = editor.root.innerHTML ?? "";
+      html = await normalizeImagesBeforeSave(html, storagePath);
+      editor.root.innerHTML = html;
+      const delta = editor.clipboard.convert(html);
       byteSize = new Blob([html]).size;
       console.log("body byteSize", byteSize);
       const used: string[] = [];
-      if (delta) {
-        for (const op of delta.ops ?? []) {
-          if (op.insert && typeof op.insert === "object") {
-            if ("image" in op.insert) {
-              used.push((op.insert as { image: string }).image);
-            } else if ("image-group" in op.insert) {
-              used.push(...(op.insert as { "image-group": { urls: string[] } })["image-group"].urls);
-            }
+      for (const op of delta.ops ?? []) {
+        if (op.insert && typeof op.insert === "object") {
+          if ("image" in op.insert) {
+            used.push((op.insert as { image: string }).image);
+          } else if ("image-group" in op.insert) {
+            used.push(...(op.insert as { "image-group": { urls: string[] } })["image-group"].urls);
           }
         }
-      }
-      if (used.some(u => u.startsWith("data:"))) {
-        showToast("data URI の画像は保存できません");
-        return;
       }
       const images = Array.from(new Set(used));
       const data = {

@@ -21,9 +21,20 @@ const EXT_TO_TYPE: Record<string, string> = {
   svgz: "image/svg+xml",
 };
 
-function inferContentType(file: File, ext: string) {
-  if (file.type?.startsWith("image/")) return file.type;
+const TYPE_TO_EXT: Record<string, string> = Object.fromEntries(
+  Object.entries(EXT_TO_TYPE).map(([ext, type]) => [type, ext])
+);
+
+function inferContentType(type: string, ext: string) {
+  if (type?.startsWith("image/")) return type;
   return EXT_TO_TYPE[ext] ?? "application/octet-stream";
+}
+
+function getExt(name: string | undefined, type: string | undefined) {
+  const ext = name?.split(".").pop()?.toLowerCase();
+  if (ext) return ext;
+  if (type && TYPE_TO_EXT[type]) return TYPE_TO_EXT[type];
+  return "jpg";
 }
 
 async function retryGetDownloadURL(r: StorageReference) {
@@ -45,15 +56,30 @@ export type UploadResult = { url: string; path: string };
 export const STORAGE_ROOT = "images";
 
 export async function uploadImageToStorage(
-  file: File,
+  input: File | Blob | { dataUrl: string },
   basePath: string,
   opts?: { postId?: string; uploadedBy?: string }
 ): Promise<UploadResult> {
-  if (file.size > IMAGE_MAX_SIZE) {
-    throw new Error("File too large");
+  let blob: Blob;
+  let name: string | undefined;
+  if ("dataUrl" in (input as { dataUrl?: string })) {
+    const { dataUrl } = input as { dataUrl: string };
+    const m = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+    const mime = m?.[1] || "image/jpeg";
+    const bin = atob(m?.[2] || "");
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    blob = new Blob([arr], { type: mime });
+    name = `image.${getExt(undefined, mime)}`;
+  } else if (input instanceof File) {
+    blob = input;
+    name = input.name;
+  } else {
+    blob = input;
   }
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const contentType = inferContentType(file, ext);
+  if (blob.size > IMAGE_MAX_SIZE) throw new Error("File too large");
+  const ext = getExt(name, blob.type);
+  const contentType = inferContentType(blob.type, ext);
   const storage = getStorage();
   const id = uuid();
   const path = `${basePath}/${id}.${ext}`;
@@ -64,10 +90,10 @@ export async function uploadImageToStorage(
     customMetadata: {
       uploadedBy: opts?.uploadedBy ?? "",
       postId: opts?.postId ?? "",
-      originalName: file.name,
+      originalName: name ?? "image",
     },
   };
-  await uploadBytes(r, file, metadata);
+  await uploadBytes(r, blob, metadata);
   const url = await retryGetDownloadURL(r);
   return { url, path };
 }
