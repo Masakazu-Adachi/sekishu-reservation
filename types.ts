@@ -59,8 +59,9 @@ export interface PublicSiteSettings {
 export interface BlogPost {
   id: string;
   title: string;
-  body: string; // HTML 文字列
+  body?: string; // HTML 文字列（レガシー）
   bodyDelta?: { ops: unknown[] } | null; // Quill Delta JSON
+  bodyHtmlUrl?: string | null;
   createdAt: string;
   imageUrl?: string;
   images?: string[];

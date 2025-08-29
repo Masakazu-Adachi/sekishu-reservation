@@ -1,5 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { BlogPost } from "@/types";
+import { deltaToPlainText } from "@/lib/quillDelta";
 
 interface Props {
   post: BlogPost;
@@ -8,8 +12,29 @@ interface Props {
 
 export default function BlogCard({ post, href }: Props) {
   const date = new Date(post.createdAt).toLocaleDateString("ja-JP");
-  const plain = post.body.replace(/<[^>]+>/g, "");
-  const preview = plain.length > 60 ? plain.slice(0, 60) + "..." : plain;
+  const [preview, setPreview] = useState("");
+
+  useEffect(() => {
+    if (post.bodyDelta) {
+      const plain = deltaToPlainText(post.bodyDelta).trim();
+      setPreview(plain.length > 60 ? plain.slice(0, 60) + "..." : plain);
+    } else if (post.bodyHtmlUrl) {
+      fetch(post.bodyHtmlUrl)
+        .then(res => res.text())
+        .then(html => {
+          const plain = html.replace(/<[^>]+>/g, "");
+          setPreview(plain.length > 60 ? plain.slice(0, 60) + "..." : plain);
+        })
+        .catch(() => {
+          const plain = (post.body || "").replace(/<[^>]+>/g, "");
+          setPreview(plain.length > 60 ? plain.slice(0, 60) + "..." : plain);
+        });
+    } else {
+      const plain = (post.body || "").replace(/<[^>]+>/g, "");
+      setPreview(plain.length > 60 ? plain.slice(0, 60) + "..." : plain);
+    }
+  }, [post]);
+
   return (
     <Link
       href={href}
