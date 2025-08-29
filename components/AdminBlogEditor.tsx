@@ -50,30 +50,6 @@ function validateImage(file: File): boolean {
   return true;
 }
 
-function buildImagesHtml(urls: string[]): string {
-  const imgs = urls.map(
-    url => `<img src="${url}" alt="" class="w-full h-auto rounded-xl sm:w-1/2" />`
-  );
-  if (urls.length === 1) {
-    return `<div class="my-4"><img src="${urls[0]}" alt="" class="w-full h-auto rounded-xl" /></div>`;
-  }
-  if (urls.length === 2) {
-    return `<div class="my-4 flex gap-2 flex-col sm:flex-row">${imgs.join("")}</div>`;
-  }
-  if (urls.length === 3) {
-    const inner = urls
-      .map(url => `<img src="${url}" alt="" class="w-full h-auto rounded-xl" />`)
-      .join("");
-    return `<div class="my-4 grid gap-2 grid-cols-1 sm:grid-cols-3">${inner}</div>`;
-  }
-  const inner = urls
-    .map(
-      url =>
-        `<img src="${url}" alt="" class="w-full sm:w-[calc(50%-0.25rem)] h-auto rounded-xl" />`
-    )
-    .join("");
-  return `<div class="my-4 flex gap-2 flex-wrap">${inner}</div>`;
-}
 
 export default function AdminBlogEditor({ collectionName, heading, storagePath }: Props) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -93,6 +69,52 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   }, []);
+
+
+  useEffect(() => {
+    if (!isQuillReady) return;
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const QuillAny: any = editor.constructor;
+    editor.clipboard.addMatcher("IMG", (node, delta) => {
+      const width =
+        (node as HTMLElement).getAttribute("width") ||
+        (node as HTMLElement).style.width;
+      if (width && delta.ops) {
+        delta.ops.forEach(op => {
+          op.attributes = { ...(op.attributes ?? {}), width };
+        });
+      }
+      return delta;
+    });
+    editor.clipboard.addMatcher("DIV", (node, delta) => {
+      const urls = (node as HTMLElement).getAttribute("data-urls");
+      if (urls) {
+        const columns = parseInt(
+          (node as HTMLElement).getAttribute("data-columns") || "0",
+          10
+        );
+        const Delta = QuillAny.import("delta");
+        const d = new Delta();
+        d.insert({ "image-group": { urls: JSON.parse(urls), columns } });
+        return d;
+      }
+      return delta;
+    });
+    const handler = () => {
+      const imgs = editor.root.querySelectorAll("img");
+      imgs.forEach(img => {
+        const blot = QuillAny.find(img);
+        const w = img.getAttribute("width") || (img as HTMLElement).style.width;
+        if (blot && w) blot.format("width", w);
+      });
+    };
+    editor.on("text-change", handler);
+    return () => {
+      editor.off("text-change", handler);
+    };
+  }, [isQuillReady]);
 
   const uploadingRef = useRef(uploading);
   useEffect(() => {
@@ -124,6 +146,63 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           QuillAny = (QMod as any).default ?? QMod;
         }
+        // カスタム Image blot（width フォーマット対応）
+        const BaseImage = QuillAny.import("formats/image");
+        class ImageEx extends BaseImage {
+          static formats(domNode: HTMLElement) {
+            const w = domNode.getAttribute("width") || domNode.style.width || null;
+            return w ? { width: w } : {};
+          }
+          format(name: string, value: unknown) {
+            if (name === "width") {
+              if (value) this.domNode.setAttribute("width", String(value));
+              else this.domNode.removeAttribute("width");
+            } else {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (BaseImage as any).prototype.format.call(this, name, value);
+            }
+          }
+        }
+        QuillAny.register(ImageEx, true);
+
+        // 複数画像用のブロック Blot
+        const BlockEmbed = QuillAny.import("blots/block/embed");
+        class ImageGroup extends BlockEmbed {
+          static blotName = "image-group";
+          static tagName = "div";
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          static create(value: any) {
+            const node = super.create() as HTMLElement;
+            const urls: string[] = value?.urls ?? [];
+            const columns: number =
+              value?.columns ?? (urls.length === 3 ? 3 : urls.length === 2 ? 2 : 2);
+            node.setAttribute("data-urls", JSON.stringify(urls));
+            node.setAttribute("data-columns", String(columns));
+            if (urls.length === 2) {
+              node.className = "my-4 grid gap-2 grid-cols-1 sm:grid-cols-2";
+            } else if (urls.length === 3) {
+              node.className = "my-4 grid gap-2 grid-cols-1 sm:grid-cols-3";
+            } else {
+              node.className = "my-4 flex gap-2 flex-wrap";
+            }
+            urls.forEach(url => {
+              const img = document.createElement("img");
+              img.setAttribute("src", url);
+              img.setAttribute("alt", "");
+              img.className = "w-full h-auto rounded-xl";
+              if (urls.length >= 4) img.classList.add("sm:w-[calc(50%-0.25rem)]");
+              node.appendChild(img);
+            });
+            return node;
+          }
+          static value(node: HTMLElement) {
+            const urls = JSON.parse(node.getAttribute("data-urls") || "[]");
+            const columns = parseInt(node.getAttribute("data-columns") || "0", 10) || urls.length;
+            return { urls, columns };
+          }
+        }
+        QuillAny.register(ImageGroup);
+
         // blot-formatter のクラス
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const BlotFormatter: any = (BFMod as any).default ?? BFMod;
@@ -131,7 +210,9 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const register = (Q: any) => {
           if (Q && typeof Q.register === "function") {
-            try { Q.register("modules/blotFormatter", BlotFormatter); } catch {}
+            try {
+              Q.register("modules/blotFormatter", BlotFormatter);
+            } catch {}
           }
         };
         if (rqAny?.Quill && rqAny.Quill !== QuillAny) register(rqAny.Quill);
@@ -218,8 +299,17 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           isPastingRef.current = true;
           const range =
             editor.getSelection(true) ?? { index: savedIndex, length: 0 };
-          const html = buildImagesHtml(urls);
-          editor.clipboard.dangerouslyPasteHTML(range.index, html);
+          if (urls.length === 1) {
+            editor.insertEmbed(range.index, "image", urls[0], "user");
+          } else {
+            const columns = urls.length === 2 ? 2 : urls.length === 3 ? 3 : 2;
+            editor.insertEmbed(
+              range.index,
+              "image-group",
+              { urls, columns },
+              "user"
+            );
+          }
           editor.setSelection(range.index + 1, 0, "user");
           requestAnimationFrame(() => {
             isPastingRef.current = false;
@@ -241,7 +331,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     "bold", "italic", "underline", "strike",
     "color", "background",
     "align",
-    "link", "image",
+    "link", "image", "image-group", "width",
     "list", "blockquote", "code-block",
   ], []);
 
@@ -275,6 +365,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const handleSubmit = async () => {
     setUploading(true);
     let imageUrl = "";
+    let byteSize = 0;
     try {
       if (file) {
         imageUrl = await uploadImage(
@@ -285,33 +376,51 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       }
       const editor = quillRef.current?.getEditor();
       const delta = editor?.getContents();
+      const html = editor?.root.innerHTML ?? "";
+      byteSize = new Blob([html]).size;
+      console.log("body byteSize", byteSize);
       const used: string[] = [];
       if (delta) {
         for (const op of delta.ops ?? []) {
-          if (op.insert && typeof op.insert === "object" && "image" in op.insert) {
-            used.push((op.insert as { image: string }).image);
+          if (op.insert && typeof op.insert === "object") {
+            if ("image" in op.insert) {
+              used.push((op.insert as { image: string }).image);
+            } else if ("image-group" in op.insert) {
+              used.push(...(op.insert as { "image-group": { urls: string[] } })["image-group"].urls);
+            }
           }
         }
       }
+      if (used.some(u => u.startsWith("data:"))) {
+        showToast("data URI の画像は保存できません");
+        return;
+      }
       const images = Array.from(new Set(used));
-      if (editingId) {
-        const original = posts.find((p) => p.id === editingId);
-        await updateDoc(doc(db, collectionName, editingId), {
-          title,
-          body,
-          imageUrl: imageUrl || original?.imageUrl || "",
-          images,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        await addDoc(collection(db, collectionName), {
-          title,
-          body,
-          imageUrl,
-          images,
-          createdAt: new Date().toISOString(),
-          updatedAt: serverTimestamp(),
-        });
+      const data = {
+        title,
+        body: html,
+        bodyDelta: delta,
+        imageUrl,
+        images,
+        updatedAt: serverTimestamp(),
+      };
+      try {
+        if (editingId) {
+          const original = posts.find(p => p.id === editingId);
+          await updateDoc(doc(db, collectionName, editingId), {
+            ...data,
+            imageUrl: imageUrl || original?.imageUrl || "",
+          });
+        } else {
+          await addDoc(collection(db, collectionName), {
+            ...data,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        // Firestore エラーを詳細にログ
+        console.error("Firestore save error", e, { byteSize });
+        throw e;
       }
       setTitle("");
       setBody("");
@@ -321,8 +430,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       await fetchPosts();
       alert(editingId ? "投稿を更新しました" : "投稿を保存しました");
     } catch (err) {
-      console.error(err);
-      alert("保存に失敗しました");
+      console.error(err, { byteSize });
+      showToast("保存に失敗しました");
     } finally {
       setUploading(false);
     }
