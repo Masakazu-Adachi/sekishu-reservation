@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { uploadImage } from "@/lib/uploadImage";
+import { validateImage } from "@/lib/validateImage";
 
 export default function AdminTopImageSettings() {
   const [imageUrl, setImageUrl] = useState("");
@@ -13,6 +14,7 @@ export default function AdminTopImageSettings() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function AdminTopImageSettings() {
   }, []);
 
   const handleFileChange = (f: File) => {
+    if (!validateImage(f)) return;
     setFile(f);
     setPreview(URL.createObjectURL(f));
   };
@@ -55,10 +58,9 @@ export default function AdminTopImageSettings() {
       let downloadUrl = imageUrl;
       let path = storagePath;
       if (file) {
-        path = `images/hero-images/${uuidv4()}-${file.name}`;
-        const storageRef = ref(storage, path);
-        await uploadBytes(storageRef, file);
-        downloadUrl = await getDownloadURL(storageRef);
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        path = `images/hero-images/${uuidv4()}.${ext}`;
+        downloadUrl = await uploadImage(file, path, setProgress);
       }
       await setDoc(
         doc(db, "settings", "publicSite"),
@@ -73,6 +75,7 @@ export default function AdminTopImageSettings() {
       setStoragePath(path);
       setFile(null);
       setPreview("");
+      setProgress(0);
       alert("保存しました");
     } catch (err) {
       console.error(err);
@@ -117,9 +120,9 @@ export default function AdminTopImageSettings() {
       <button
         onClick={handleSave}
         disabled={uploading}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
+        className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white px-4 py-2 rounded disabled:opacity-50"
       >
-        {uploading ? "保存中..." : "保存"}
+        {uploading ? `保存中...${progress.toFixed(0)}%` : "保存"}
       </button>
     </div>
   );

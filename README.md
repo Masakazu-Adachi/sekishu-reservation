@@ -84,3 +84,11 @@ npm run set-cors
 ```
 
 このコマンドは内部で `gsutil cors set cors.json gs://ochakai-reserve.appspot.com` を実行します。
+
+## トップ画像の差し替え
+
+管理画面の `/admin2/top-image` からトップページのヒーロー画像を更新できます。画像を選択し alt テキストを入力して保存すると、Firebase Storage にアップロードされ、即座にサイトに反映されます。
+
+## 挨拶文の編集
+
+`/admin2/greeting` ではリッチテキストエディタを用いて挨拶文を編集できます。太字・斜体・下線・整列・リンク・画像挿入に対応しており、保存すると HTML として `settings/publicSite.greetingHtml` に保存されます。
