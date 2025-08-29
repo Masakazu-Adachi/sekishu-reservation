@@ -50,6 +50,31 @@ function validateImage(file: File): boolean {
   return true;
 }
 
+function buildImagesHtml(urls: string[]): string {
+  const imgs = urls.map(
+    url => `<img src="${url}" alt="" class="w-full h-auto rounded-xl sm:w-1/2" />`
+  );
+  if (urls.length === 1) {
+    return `<div class="my-4"><img src="${urls[0]}" alt="" class="w-full h-auto rounded-xl" /></div>`;
+  }
+  if (urls.length === 2) {
+    return `<div class="my-4 flex gap-2 flex-col sm:flex-row">${imgs.join("")}</div>`;
+  }
+  if (urls.length === 3) {
+    const inner = urls
+      .map(url => `<img src="${url}" alt="" class="w-full h-auto rounded-xl" />`)
+      .join("");
+    return `<div class="my-4 grid gap-2 grid-cols-1 sm:grid-cols-3">${inner}</div>`;
+  }
+  const inner = urls
+    .map(
+      url =>
+        `<img src="${url}" alt="" class="w-full sm:w-[calc(50%-0.25rem)] h-auto rounded-xl" />`
+    )
+    .join("");
+  return `<div class="my-4 flex gap-2 flex-wrap">${inner}</div>`;
+}
+
 export default function AdminBlogEditor({ collectionName, heading, storagePath }: Props) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [title, setTitle] = useState("");
@@ -62,6 +87,12 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const inputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<ReactQuillType | null>(null);
   const [isQuillReady, setIsQuillReady] = useState(false); // 登録完了フラグ
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
   // 画像リサイズ⇒ blot-formatter に切替。
   // 「ReactQuill が使う Quill」に登録。完了まで描画しない。
@@ -135,32 +166,49 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       ],
       handlers: {
         image: () => {
+          if (uploading) return;
           const input = document.createElement("input");
           input.type = "file";
           input.accept = "image/*";
+          input.multiple = true;
           input.onchange = async () => {
-            const file = input.files?.[0];
-            if (!file || !validateImage(file)) return;
-            try {
-              setUploading(true);
-              const { url } = await uploadImageToStorage(file, storagePath, {
-                uploadedBy: "admin",
-              });
-              const editor = quillRef.current?.getEditor();
+            const files = input.files ? Array.from(input.files) : [];
+            const validFiles = files.filter(f => validateImage(f));
+            if (!validFiles.length) return;
+            setUploading(true);
+            const editor = quillRef.current?.getEditor();
+            const toolbarBtn = editor
+              ?.getModule("toolbar")
+              ?.container.querySelector("button.ql-image") as HTMLButtonElement | null;
+            if (toolbarBtn) toolbarBtn.disabled = true;
+            const urls: string[] = [];
+            for (const f of validFiles) {
+              try {
+                const { url } = await uploadImageToStorage(f, storagePath, {
+                  uploadedBy: "admin",
+                });
+                urls.push(url);
+              } catch (err) {
+                console.error(err);
+                showToast("画像のアップロードに失敗しました");
+              }
+            }
+            if (urls.length) {
               if (editor) {
                 const range =
                   editor.getSelection(true) ?? {
                     index: editor.getLength(),
                     length: 0,
                   };
-                editor.insertEmbed(range.index, "image", url, "user");
+                const html = buildImagesHtml(urls);
+                editor.clipboard.dangerouslyPasteHTML(range.index, html);
                 editor.setSelection(range.index + 1, 0, "user");
               } else {
-                setBody((prev) => `${prev}\n<p><img src="${url}" alt="" /></p>\n`);
+                setBody((prev) => `${prev}\n${buildImagesHtml(urls)}\n`);
               }
-            } finally {
-              setUploading(false);
             }
+            if (toolbarBtn) toolbarBtn.disabled = false;
+            setUploading(false);
           };
           input.click();
         },
@@ -169,7 +217,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     clipboard: { matchVisual: false },
     // 画像リサイズの代わりに blot-formatter を使用（登録完了後のみ）
     ...(isQuillReady ? { blotFormatter: {} } : {})
-  }), [storagePath, isQuillReady]);
+  }), [storagePath, isQuillReady, uploading, showToast]);
 
   const formats = useMemo(() => [
     "header",
@@ -384,6 +432,35 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           </div>
         ))}
       </div>
+      {toast && (
+        <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded">
+          {toast}
+        </div>
+      )}
+      {uploading && (
+        <div className="fixed bottom-4 right-4" aria-label="loading">
+          <svg
+            className="animate-spin h-6 w-6 text-gray-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
