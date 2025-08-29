@@ -87,8 +87,8 @@ npm run set-cors
 
 ## トップ画像の差し替え
 
-管理画面の `/admin2/top-image` からトップページのヒーロー画像を更新できます。画像を選択し alt テキストを入力して保存すると、Firebase Storage にアップロードされ、即座にサイトに反映されます。
+管理画面の `/admin2/top-image` からトップページのヒーロー画像を更新できます。JPG/PNG 形式かつ 10MB 以内の画像を選び、alt テキストを入力して保存してください。アップロードが完了すると Firebase Storage に保存され、即座にサイトに反映されます。
 
 ## 挨拶文の編集
 
-`/admin2/greeting` ではリッチテキストエディタを用いて挨拶文を編集できます。太字・斜体・下線・整列・リンク・画像挿入に対応しており、保存すると HTML として `settings/publicSite.greetingHtml` に保存されます。
+`/admin2/greeting` ではリッチテキストエディタを用いて挨拶文を編集できます。太字・斜体・下線・整列・リンク・画像挿入に対応しており、保存すると HTML として `settings/publicSite.greetingHtml` に保存されます。画像は JPG/PNG 形式（10MB 以内）に対応しています。

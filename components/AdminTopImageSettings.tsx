@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { uploadImage } from "@/lib/uploadImage";
+import { uploadImageToStorage } from "@/lib/storageImages";
 import { validateImage } from "@/lib/validateImage";
 
 export default function AdminTopImageSettings() {
@@ -14,7 +13,6 @@ export default function AdminTopImageSettings() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -58,9 +56,13 @@ export default function AdminTopImageSettings() {
       let downloadUrl = imageUrl;
       let path = storagePath;
       if (file) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-        path = `images/hero-images/${uuidv4()}.${ext}`;
-        downloadUrl = await uploadImage(file, path, setProgress);
+        const { url, path: uploadedPath } = await uploadImageToStorage(
+          file,
+          "images/hero",
+          { uploadedBy: "admin" }
+        );
+        downloadUrl = url;
+        path = uploadedPath;
       }
       await setDoc(
         doc(db, "settings", "publicSite"),
@@ -75,7 +77,6 @@ export default function AdminTopImageSettings() {
       setStoragePath(path);
       setFile(null);
       setPreview("");
-      setProgress(0);
       alert("保存しました");
     } catch (err) {
       console.error(err);
@@ -122,7 +123,7 @@ export default function AdminTopImageSettings() {
         disabled={uploading}
         className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded disabled:opacity-50"
       >
-        {uploading ? `保存中...${progress.toFixed(0)}%` : "保存"}
+        {uploading ? "保存中..." : "保存"}
       </button>
     </div>
   );

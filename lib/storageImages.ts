@@ -8,20 +8,26 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { v4 as uuid } from "uuid";
+import { IMAGE_MAX_SIZE } from "./validateImage";
 
 export const STORAGE_ROOT = "images";
 
-export async function uploadImageToStorage(file: File, basePath: string, opts?: { postId?: string; uploadedBy?: string }) {
-  const storage = getStorage();
+export async function uploadImageToStorage(
+  file: File,
+  basePath: string,
+  opts?: { postId?: string; uploadedBy?: string }
+) {
+  if (file.size > IMAGE_MAX_SIZE) {
+    throw new Error("File too large");
+  }
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const now = new Date();
-  const y = String(now.getFullYear());
-  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const contentType = ext === "png" ? "image/png" : "image/jpeg";
+  const storage = getStorage();
   const id = uuid();
-  const path = `${basePath}/${y}/${m}/${opts?.postId ?? "misc"}/${id}.${ext}`;
+  const path = `${basePath}/${id}.${ext}`;
   const r = ref(storage, path);
   const metadata = {
-    contentType: file.type || "image/jpeg",
+    contentType,
     cacheControl: "public,max-age=31536000,immutable",
     customMetadata: {
       uploadedBy: opts?.uploadedBy ?? "",
@@ -31,7 +37,12 @@ export async function uploadImageToStorage(file: File, basePath: string, opts?: 
   };
   const snap = await uploadBytes(r, file, metadata);
   const url = await getDownloadURL(r);
-  return { path, url, contentType: metadata.contentType!, size: snap.metadata.size ? Number(snap.metadata.size) : file.size };
+  return {
+    path,
+    url,
+    contentType: metadata.contentType!,
+    size: snap.metadata.size ? Number(snap.metadata.size) : file.size,
+  };
 }
 
 export async function listImages(prefix: string, pageToken?: string) {
