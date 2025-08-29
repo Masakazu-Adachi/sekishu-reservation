@@ -1,9 +1,11 @@
 export const IMAGE_MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+const ALLOWED_EXTS = ["jpg", "jpeg", "png", "gif", "webp", "svg", "svgz"];
+
 export function validateImage(file: File): boolean {
   const ext = file.name.split(".").pop()?.toLowerCase();
-  if (!ext || !["jpg", "jpeg", "png"].includes(ext)) {
-    alert("jpg/jpeg/png 形式の画像のみアップロードできます");
+  if (!ext || !ALLOWED_EXTS.includes(ext)) {
+    alert("jpg/jpeg/png/gif/webp/svg/svgz 形式の画像のみアップロードできます");
     return false;
   }
   if (file.size > IMAGE_MAX_SIZE) {
