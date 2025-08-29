@@ -10,13 +10,15 @@ import {
 import { v4 as uuid } from "uuid";
 import { IMAGE_MAX_SIZE } from "./validateImage";
 
+export type UploadResult = { url: string; path: string };
+
 export const STORAGE_ROOT = "images";
 
 export async function uploadImageToStorage(
   file: File,
   basePath: string,
   opts?: { postId?: string; uploadedBy?: string }
-) {
+): Promise<UploadResult> {
   if (file.size > IMAGE_MAX_SIZE) {
     throw new Error("File too large");
   }
@@ -35,14 +37,9 @@ export async function uploadImageToStorage(
       originalName: file.name,
     },
   };
-  const snap = await uploadBytes(r, file, metadata);
+  await uploadBytes(r, file, metadata);
   const url = await getDownloadURL(r);
-  return {
-    path,
-    url,
-    contentType: metadata.contentType!,
-    size: snap.metadata.size ? Number(snap.metadata.size) : file.size,
-  };
+  return { url, path };
 }
 
 export async function listImages(prefix: string, pageToken?: string) {
