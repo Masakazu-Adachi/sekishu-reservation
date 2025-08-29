@@ -75,7 +75,7 @@ export async function uploadImageToStorage(
     blob = input;
     name = input.name;
   } else {
-    blob = input;
+    blob = input as Blob;
   }
   if (blob.size > IMAGE_MAX_SIZE) throw new Error("File too large");
   const ext = getExt(name, blob.type);

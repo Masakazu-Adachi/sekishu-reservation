@@ -6,6 +6,7 @@ import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import type ReactQuillType from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import type Quill from "quill";
 // ReactQuill はクライアントのみ読み込み（SSG/SSRで落ちないように）
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ReactQuill = dynamic(() => import("react-quill").then(m => m.default), { ssr: false }) as any;
@@ -49,33 +50,38 @@ function validateImage(file: File): boolean {
   }
   return true;
 }
-
 async function dataUrlOrBlobToBlob(src: string): Promise<Blob> {
+  if (src.startsWith("data:")) {
+    const [meta, data] = src.split(",");
+    const mimeMatch = meta.match(/data:(.*?)(;base64)?$/);
+    const mime = mimeMatch?.[1] || "application/octet-stream";
+    const bin = atob(data);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
   const res = await fetch(src);
   return res.blob();
 }
 
-async function normalizeImagesBeforeSave(
-  html: string,
-  storagePath: string
-): Promise<string> {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const imgs = Array.from(doc.querySelectorAll("img"));
+async function normalizeDataImagesInEditor(editor: Quill, storagePath: string) {
+  const root: HTMLElement = editor.root;
+  const imgs = Array.from(
+    root.querySelectorAll('img[src^="data:"], img[src^="blob:"]')
+  ) as HTMLImageElement[];
+
   for (const img of imgs) {
     const src = img.getAttribute("src") || "";
-    if (/^(data:|blob:)/.test(src)) {
-      try {
-        const blob = await dataUrlOrBlobToBlob(src);
-        const { url } = await uploadImageToStorage(blob, storagePath, {
-          uploadedBy: "admin",
-        });
-        img.setAttribute("src", url);
-      } catch (e) {
-        console.error(e);
-      }
+    try {
+      const blob = await dataUrlOrBlobToBlob(src);
+      const { url } = await uploadImageToStorage(blob, storagePath, {
+        uploadedBy: "admin",
+      });
+      img.setAttribute("src", url);
+    } catch (e) {
+      console.error("data/blob upload failed", e);
     }
   }
-  return doc.body.innerHTML;
 }
 
 
@@ -114,33 +120,9 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     if (!editor) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const QuillAny: any = editor.constructor;
-    editor.clipboard.addMatcher("IMG", async (node, delta) => {
+    editor.clipboard.addMatcher("IMG", (node, delta) => {
       const el = node as HTMLElement;
       const width = el.getAttribute("width") || el.style.width;
-      const src = el.getAttribute("src") || "";
-      if (/^(data:|blob:)/.test(src)) {
-        try {
-          const blob = await dataUrlOrBlobToBlob(src);
-          const { url } = await uploadImageToStorage(blob, storagePath, {
-            uploadedBy: "admin",
-          });
-          if (delta.ops) {
-            delta.ops = delta.ops.map(op => {
-              if (
-                op.insert &&
-                typeof op.insert === "object" &&
-                "image" in (op.insert as Record<string, unknown>)
-              ) {
-                return { insert: { image: url }, attributes: op.attributes };
-              }
-              return op;
-            });
-          }
-        } catch (e) {
-          console.error(e);
-          showToastRef.current("画像のアップロードに失敗しました");
-        }
-      }
       if (width && delta.ops) {
         delta.ops.forEach(op => {
           op.attributes = { ...(op.attributes ?? {}), width };
@@ -200,9 +182,13 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       }
       setUploading(false);
       uploadingRef.current = false;
+      setTimeout(() => normalizeDataImagesInEditor(editor, storagePath), 0);
     };
-
     editor.root.addEventListener("drop", dropHandler);
+    const pasteHandler = () => {
+      setTimeout(() => normalizeDataImagesInEditor(editor, storagePath), 0);
+    };
+    editor.root.addEventListener("paste", pasteHandler);
 
     const handler = () => {
       const imgs = editor.root.querySelectorAll("img");
@@ -216,8 +202,9 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     return () => {
       editor.off("text-change", handler);
       editor.root.removeEventListener("drop", dropHandler);
+      editor.root.removeEventListener("paste", pasteHandler);
     };
-  }, [isQuillReady, storagePath, showToast]);
+  }, [isQuillReady, storagePath]);
 
   // 画像リサイズ⇒ blot-formatter に切替。
   // 「ReactQuill が使う Quill」に登録。完了まで描画しない。
@@ -416,7 +403,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       input.click();
     };
     toolbar.addHandler("image", onImageClick);
-  }, [storagePath, isQuillReady]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isQuillReady]);
 
   const formats = useMemo(() => [
     "header",
@@ -469,9 +457,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       }
       const editor = quillRef.current?.getEditor();
       if (!editor) throw new Error("editor not ready");
-      let html = editor.root.innerHTML ?? "";
-      html = await normalizeImagesBeforeSave(html, storagePath);
-      editor.root.innerHTML = html;
+      await normalizeDataImagesInEditor(editor, storagePath);
+      const html = editor.root.innerHTML ?? "";
       const delta = editor.clipboard.convert(html);
       byteSize = new Blob([html]).size;
       console.log("body byteSize", byteSize);
