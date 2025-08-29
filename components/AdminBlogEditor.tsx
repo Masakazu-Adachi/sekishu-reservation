@@ -94,6 +94,15 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     setTimeout(() => setToast(null), 3000);
   }, []);
 
+  const uploadingRef = useRef(uploading);
+  useEffect(() => {
+    uploadingRef.current = uploading;
+  }, [uploading]);
+  const showToastRef = useRef(showToast);
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
+
   // 画像リサイズ⇒ blot-formatter に切替。
   // 「ReactQuill が使う Quill」に登録。完了まで描画しない。
   useEffect(() => {
@@ -166,7 +175,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       ],
       handlers: {
         image: () => {
-          if (uploading) return;
+          if (uploadingRef.current) return;
           const input = document.createElement("input");
           input.type = "file";
           input.accept = "image/*";
@@ -187,25 +196,23 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
                 const { url } = await uploadImageToStorage(f, storagePath, {
                   uploadedBy: "admin",
                 });
-                urls.push(url);
+                if (url) urls.push(url);
               } catch (err) {
                 console.error(err);
-                showToast("画像のアップロードに失敗しました");
+                showToastRef.current("画像のアップロードに失敗しました");
               }
             }
-            if (urls.length) {
-              if (editor) {
-                const range =
-                  editor.getSelection(true) ?? {
-                    index: editor.getLength(),
-                    length: 0,
-                  };
-                const html = buildImagesHtml(urls);
-                editor.clipboard.dangerouslyPasteHTML(range.index, html);
-                editor.setSelection(range.index + 1, 0, "user");
-              } else {
-                setBody((prev) => `${prev}\n${buildImagesHtml(urls)}\n`);
-              }
+            // eslint-disable-next-line no-console
+            console.log("uploaded urls:", urls);
+            if (urls.length > 0 && editor) {
+              const range =
+                editor.getSelection(true) ?? {
+                  index: editor.getLength(),
+                  length: 0,
+                };
+              const html = buildImagesHtml(urls);
+              editor.clipboard.dangerouslyPasteHTML(range.index, html);
+              editor.setSelection(range.index + 1, 0, "user");
             }
             if (toolbarBtn) toolbarBtn.disabled = false;
             setUploading(false);
@@ -217,7 +224,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     clipboard: { matchVisual: false },
     // 画像リサイズの代わりに blot-formatter を使用（登録完了後のみ）
     ...(isQuillReady ? { blotFormatter: {} } : {})
-  }), [storagePath, isQuillReady, uploading, showToast]);
+  }), [storagePath, isQuillReady]);
 
   const formats = useMemo(() => [
     "header",
