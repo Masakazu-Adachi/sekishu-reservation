@@ -14,6 +14,7 @@ export default function HomePage() {
     defaultGreeting.split("\n")
   );
   const [greetingImageUrl, setGreetingImageUrl] = useState("");
+  const [greetingHtml, setGreetingHtml] = useState("");
 
   useEffect(() => {
     const fetchSiteSettings = async () => {
@@ -27,7 +28,9 @@ export default function HomePage() {
         const data = snap.data();
         if (data.heroImageUrl) setTopImageUrl(data.heroImageUrl);
         if (data.heroImageAlt) setHeroImageAlt(data.heroImageAlt);
-        if (data.paragraphs) {
+        if (data.greetingHtml) {
+          setGreetingHtml(data.greetingHtml as string);
+        } else if (data.paragraphs) {
           setParagraphs(data.paragraphs as string[]);
         } else if (data.greetingLines) {
           setParagraphs(
@@ -71,11 +74,18 @@ export default function HomePage() {
             className="w-full mb-4 rounded"
           />
         )}
-        {paragraphs.map((text, idx) => (
-          <p key={idx} className="text-lg mb-4 font-serif">
-            {text}
-          </p>
-        ))}
+        {greetingHtml ? (
+          <div
+            className="text-lg font-serif space-y-4"
+            dangerouslySetInnerHTML={{ __html: greetingHtml }}
+          />
+        ) : (
+          paragraphs.map((text, idx) => (
+            <p key={idx} className="text-lg mb-4 font-serif">
+              {text}
+            </p>
+          ))
+        )}
       </section>
 
       {/* 各ページへのリンク */}

@@ -1,18 +1,21 @@
 "use client";
 
+import "@/app/react-dom-finddomnode-polyfill";
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
+import type ReactQuillType from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { db } from "@/lib/firebase";
-import { uploadImage } from "@/lib/uploadImage";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { uploadImageToStorage } from "@/lib/storageImages";
+import { validateImage } from "@/lib/validateImage";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ReactQuill = dynamic(() => import("react-quill").then(m => m.default), { ssr: false }) as any;
 
 export default function AdminGreetingSettings() {
-  const [paragraphs, setParagraphs] = useState<string[]>([""]);
-  const [imageUrl, setImageUrl] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dragIndex = useRef<number | null>(null);
+  const [html, setHtml] = useState("");
+  const quillRef = useRef<ReactQuillType | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -24,83 +27,60 @@ export default function AdminGreetingSettings() {
       }
       if (snap.exists()) {
         const data = snap.data();
-        if (data.greetingImageUrl) setImageUrl(data.greetingImageUrl);
-        if (data.paragraphs) {
-          setParagraphs(data.paragraphs as string[]);
+        if (data.greetingHtml) {
+          setHtml(data.greetingHtml as string);
+        } else if (data.paragraphs) {
+          setHtml((data.paragraphs as string[]).map(p => `<p>${p}</p>`).join(""));
         } else if (data.greetingLines) {
-          setParagraphs(
-            (data.greetingLines as { text: string }[]).map((l) => l.text)
-          );
+          setHtml((data.greetingLines as { text: string }[]).map(l => `<p>${l.text}</p>`).join(""));
         } else if (data.greetingText) {
-          setParagraphs((data.greetingText as string).split("\n"));
+          setHtml((data.greetingText as string).split("\n").map(t => `<p>${t}</p>`).join(""));
         }
       }
     };
     fetchData();
   }, []);
 
-  const handleFileSelect = () => inputRef.current?.click();
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) setFile(f);
-  };
-  const handleUpload = async () => {
-    if (!file) return;
-    setUploading(true);
-    setProgress(0);
-    try {
-      const downloadUrl = await uploadImage(
-        file,
-        `images/greeting-images/${file.name}`,
-        setProgress
-      );
-      await setDoc(
-        doc(db, "settings", "publicSite"),
-        { greetingImageUrl: downloadUrl },
-        { merge: true }
-      );
-      setImageUrl(downloadUrl);
-      setFile(null);
-      alert("画像をアップロードし、URLを保存しました！");
-    } catch (err) {
-      console.error(err);
-      alert("アップロードでエラーが発生しました");
-    } finally {
-      setUploading(false);
-    }
+  const modules = {
+    toolbar: {
+      container: [
+        ["bold", "italic", "underline"],
+        [{ align: [] }],
+        ["link", "image"],
+        ["clean"],
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "image/*";
+          input.onchange = async () => {
+            const file = input.files?.[0];
+            if (!file || !validateImage(file)) return;
+            try {
+              const { url } = await uploadImageToStorage(file, "images/greeting-editor", { uploadedBy: "admin" });
+              const editor = quillRef.current?.getEditor();
+              if (editor) {
+                const range = editor.getSelection(true) ?? { index: editor.getLength(), length: 0 };
+                editor.insertEmbed(range.index, "image", url, "user");
+                editor.setSelection(range.index + 1, 0, "user");
+              }
+            } catch {
+              alert("画像のアップロードに失敗しました");
+            }
+          };
+          input.click();
+        },
+      },
+    },
+    clipboard: { matchVisual: false },
   };
 
-  const addParagraph = () => setParagraphs((prev) => [...prev, ""]);
-  const removeParagraph = (idx: number) =>
-    setParagraphs((prev) => prev.filter((_, i) => i !== idx));
-  const updateParagraph = (idx: number, value: string) =>
-    setParagraphs((prev) => prev.map((p, i) => (i === idx ? value : p)));
-
-  const handleDragStart = (idx: number) => {
-    dragIndex.current = idx;
-  };
-  const handleDragOver = (idx: number) => {
-    const from = dragIndex.current;
-    if (from === null || from === idx) return;
-    setParagraphs((prev) => {
-      const arr = [...prev];
-      const [moved] = arr.splice(from, 1);
-      arr.splice(idx, 0, moved);
-      dragIndex.current = idx;
-      return arr;
-    });
-  };
-  const handleDragEnd = () => {
-    dragIndex.current = null;
-  };
+  const formats = ["bold", "italic", "underline", "align", "link", "image"];
 
   const handleSave = async () => {
     try {
-      await setDoc(
-        doc(db, "settings", "publicSite"),
-        { paragraphs },
-        { merge: true }
-      );
+      await setDoc(doc(db, "settings", "publicSite"), { greetingHtml: html }, { merge: true });
       alert("ごあいさつを保存しました！");
     } catch (err) {
       console.error(err);
@@ -111,78 +91,12 @@ export default function AdminGreetingSettings() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">ごあいさつ設定</h1>
-
-      {imageUrl && (
-        <img src={imageUrl} alt="ごあいさつ画像" className="w-full mb-4 rounded" />
-      )}
-
-      <div className="flex items-center gap-4 mb-4">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          ref={inputRef}
-          className="hidden"
-        />
-        <button
-          type="button"
-          onClick={handleFileSelect}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded shadow"
-        >
-          ファイルを選択
-        </button>
-        {file && <span className="truncate max-w-xs">{file.name}</span>}
-      </div>
-
-      <button
-        onClick={handleUpload}
-        disabled={!file || uploading}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50 mb-6"
-      >
-        {uploading ? `アップロード中...${progress.toFixed(0)}%` : "画像をアップロードして設定"}
-      </button>
-
-      {paragraphs.map((p, idx) => (
-        <div
-          key={idx}
-          className="mb-4 border p-3 rounded flex items-start gap-2"
-          draggable
-          onDragStart={() => handleDragStart(idx)}
-          onDragOver={(e) => {
-            e.preventDefault();
-            handleDragOver(idx);
-          }}
-          onDragEnd={handleDragEnd}
-        >
-          <textarea
-            value={p}
-            onChange={(e) => updateParagraph(idx, e.target.value)}
-            className="flex-1 p-2 border rounded"
-            rows={3}
-          />
-          <button
-            type="button"
-            onClick={() => removeParagraph(idx)}
-            className="text-red-600 text-sm"
-          >
-            削除
-          </button>
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={addParagraph}
-        className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded mb-4"
-      >
-        行を追加
-      </button>
-
+      <ReactQuill ref={quillRef} value={html} onChange={setHtml} modules={modules} formats={formats} />
       <button
         onClick={handleSave}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+        className="mt-4 bg-[--color-primary] hover:bg-[--color-primary-hover] text-white px-4 py-2 rounded"
       >
-        ごあいさつを保存
+        保存
       </button>
     </div>
   );
