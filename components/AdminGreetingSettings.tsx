@@ -94,7 +94,7 @@ export default function AdminGreetingSettings() {
       <ReactQuill ref={quillRef} value={html} onChange={setHtml} modules={modules} formats={formats} />
       <button
         onClick={handleSave}
-        className="mt-4 bg-[--color-primary] hover:bg-[--color-primary-hover] text-white px-4 py-2 rounded"
+        className="mt-4 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded"
       >
         保存
       </button>

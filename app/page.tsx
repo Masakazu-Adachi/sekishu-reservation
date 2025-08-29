@@ -92,17 +92,17 @@ export default function HomePage() {
       <section className="py-12 mb-8 max-w-5xl mx-auto px-4 text-center">
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link href="/events">
-            <button className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white py-2 px-6 rounded shadow font-serif">
+            <button className="bg-primary hover:bg-primary-hover text-white py-2 px-6 rounded shadow font-serif">
               お茶会のご案内
             </button>
           </Link>
           <Link href="/posts/past">
-            <button className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white py-2 px-6 rounded shadow font-serif">
+            <button className="bg-primary hover:bg-primary-hover text-white py-2 px-6 rounded shadow font-serif">
               過去の茶会紹介
             </button>
           </Link>
           <Link href="/posts/letters">
-            <button className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white py-2 px-6 rounded shadow font-serif">
+            <button className="bg-primary hover:bg-primary-hover text-white py-2 px-6 rounded shadow font-serif">
               通信ページ
             </button>
           </Link>
@@ -110,12 +110,12 @@ export default function HomePage() {
       </section>
 
       {/* 予約確認セクション */}
-      <section className="py-8 bg-[--color-primary] border-t-4 border-[--color-border] text-center px-4 mt-8 max-w-5xl mx-auto text-white">
+      <section className="py-8 bg-primary border-t-4 border-border text-center px-4 mt-8 max-w-5xl mx-auto text-white">
         <p className="mb-4 text-lg font-semibold font-serif">
           すでに予約済みの方はこちら
         </p>
         <Link href="/reservations/confirm">
-          <button className="bg-[--color-primary-hover] hover:bg-[--color-border] text-white py-2 px-6 rounded shadow transition-colors font-serif border border-[--color-border]">
+          <button className="bg-primary-hover hover:bg-border text-white py-2 px-6 rounded shadow transition-colors font-serif border border-border">
             予約の確認・変更はこちら
           </button>
         </Link>
