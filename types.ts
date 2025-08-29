@@ -49,6 +49,13 @@ export interface GreetingLine {
   font: "serif" | "sans" | "mono";
 }
 
+export interface PublicSiteSettings {
+  heroImageUrl?: string;
+  heroImageAlt?: string;
+  heroImageStoragePath?: string;
+  paragraphs?: string[];
+}
+
 export interface BlogPost {
   id: string;
   title: string;
