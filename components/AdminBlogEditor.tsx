@@ -342,8 +342,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   useEffect(() => {
     const editor = quillRef.current?.getEditor();
     if (!editor) return;
-    const toolbar = editor.getModule("toolbar");
-    if (!toolbar) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolbar = editor.getModule("toolbar") as any;
     const onImageClick = () => {
       if (uploadingRef.current) return;
       const input = document.createElement("input");
@@ -397,7 +397,9 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       };
       input.click();
     };
-    toolbar.addHandler("image", onImageClick);
+    if (toolbar && typeof toolbar.addHandler === "function") {
+      toolbar.addHandler("image", onImageClick);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isQuillReady]);
 
