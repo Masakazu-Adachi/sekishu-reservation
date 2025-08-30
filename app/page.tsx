@@ -89,35 +89,37 @@ export default function HomePage() {
       </section>
 
       {/* 各ページへのリンク */}
-      <section className="py-12 mb-8 max-w-5xl mx-auto px-4 text-center">
-        <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Link href="/events">
-            <button className="bg-primary hover:bg-primary-hover text-white py-2 px-6 rounded shadow font-serif">
-              お茶会のご案内
-            </button>
+      <section className="py-12 max-w-5xl mx-auto px-4 mb-8 sm:mb-10">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto">
+          <Link
+            href="/events"
+            className="inline-flex items-center justify-center h-10 sm:h-11 w-full rounded bg-primary hover:bg-primary-hover text-white shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          >
+            お茶会のご案内
           </Link>
-          <Link href="/posts/past">
-            <button className="bg-primary hover:bg-primary-hover text-white py-2 px-6 rounded shadow font-serif">
-              過去の茶会紹介
-            </button>
+          <Link
+            href="/posts/past"
+            className="inline-flex items-center justify-center h-10 sm:h-11 w-full rounded bg-primary hover:bg-primary-hover text-white shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          >
+            過去の茶会紹介
           </Link>
-          <Link href="/posts/letters">
-            <button className="bg-primary hover:bg-primary-hover text-white py-2 px-6 rounded shadow font-serif">
-              お問い合わせ
-            </button>
+          <Link
+            href="/posts/letters"
+            className="inline-flex items-center justify-center h-10 sm:h-11 w-full rounded bg-primary hover:bg-primary-hover text-white shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          >
+            お問い合わせ
           </Link>
         </div>
       </section>
 
       {/* 予約確認セクション */}
-      <section className="py-8 bg-primary border-t-4 border-border text-center px-4 mt-8 max-w-5xl mx-auto text-white">
-        <p className="mb-4 text-lg font-semibold font-serif">
-          すでに予約済みの方はこちら
-        </p>
-        <Link href="/reservations/confirm">
-          <button className="bg-primary-hover hover:bg-border text-white py-2 px-6 rounded shadow transition-colors font-serif border border-border">
-            予約の確認・変更はこちら
-          </button>
+      <section className="mt-6 sm:mt-8 bg-slate-700 text-white/90 px-6 py-8 sm:px-10 sm:py-10 rounded-2xl ring-1 ring-white/10 shadow-lg max-w-4xl mx-auto">
+        <h3 className="text-center text-sm sm:text-base">すでに予約済みの方はこちら</h3>
+        <Link
+          href="/reservations/confirm"
+          className="mx-auto mt-4 inline-flex items-center justify-center h-11 px-5 text-sm font-medium rounded-xl bg-white text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-slate-700"
+        >
+          予約の確認・変更はこちら
         </Link>
       </section>
     </main>
