@@ -4,14 +4,12 @@ const nextConfig: NextConfig = {
   // ✅ outputは指定しない（デフォルトのまま）
   reactStrictMode: true,
   experimental: {
-    optimizePackageImports: ['react-quill'],
   },
   webpack: (config: any) => {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       'quill$': require.resolve('quill'),
-      'react-quill$': require.resolve('react-quill'),
     };
     return config;
   },
