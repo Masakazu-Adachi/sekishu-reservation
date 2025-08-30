@@ -16,6 +16,8 @@ import { nanoid } from "nanoid";
 import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 import type { Event, Seat } from "@/types";
+import { deltaToHtml } from "@/lib/quillDelta";
+import { linkifyAndLineBreak } from "@/lib/text";
 
 
 export default function EventDetailPage() {
@@ -36,7 +38,9 @@ export default function EventDetailPage() {
       const docRef = doc(db, "events", id as string);
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
-        setEvent({ id: snapshot.id, ...snapshot.data() } as Event);
+        const data = snapshot.data();
+        const venues = data.venues || (data.venue ? [data.venue] : []);
+        setEvent({ id: snapshot.id, ...data, venues } as Event);
       }
     };
     fetchEvent();
@@ -128,7 +132,7 @@ export default function EventDetailPage() {
             </p>
             <hr/>
             <div>
-              <p><strong>会場：</strong>${event.venue}</p>
+              <p><strong>会場：</strong>${(event.venues || []).join('<br/>')}</p>
               <p><strong>日付：</strong>${event.date
                 .toDate()
                 .toLocaleDateString('ja-JP')}</p>
@@ -175,7 +179,7 @@ export default function EventDetailPage() {
             <p>${name}様から予約がありました。</p>
             <ul>
               <li><strong>イベント:</strong> ${event.title}</li>
-              <li><strong>会場:</strong> ${event.venue}</li>
+              <li><strong>会場:</strong> ${(event.venues || []).join('<br/>')}</li>
               <li><strong>日付:</strong> ${event.date
                 .toDate()
                 .toLocaleDateString("ja-JP")}</li>
@@ -215,7 +219,26 @@ export default function EventDetailPage() {
         </div>
       )}
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
-      <p>会場: {event.venue}</p>
+      {event.greetingDelta && (
+        <div
+          className="mb-4"
+          dangerouslySetInnerHTML={{ __html: deltaToHtml(event.greetingDelta) }}
+        />
+      )}
+      {event.venues && event.venues.length === 1 ? (
+        <p>
+          会場: <span dangerouslySetInnerHTML={{ __html: linkifyAndLineBreak(event.venues[0]) }} />
+        </p>
+      ) : event.venues && event.venues.length > 1 ? (
+        <div className="mb-2">
+          <p>会場:</p>
+          <ul className="list-disc pl-5">
+            {event.venues.map((v, i) => (
+              <li key={i} dangerouslySetInnerHTML={{ __html: linkifyAndLineBreak(v) }} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <p>日付: {event.date.toDate().toLocaleDateString("ja-JP")}</p>
       <p className="mb-4">説明: {event.description}</p>
 
@@ -310,7 +333,7 @@ export default function EventDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded space-y-4 text-lg max-w-sm w-full">
             <h2 className="text-xl font-bold">ご予約内容の確認</h2>
-            <p>会場: {event?.venue}</p>
+            <p>会場: {(event?.venues || []).join(" / ")}</p>
             <p>日付: {event?.date.toDate().toLocaleDateString("ja-JP")}</p>
             {event?.seats && event.seats.length > 0 && (
               <p>時間: {selectedTime}</p>

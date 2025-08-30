@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useParams } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
 import {
@@ -18,6 +19,8 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 import type { Seat } from "@/types";
+import type ReactQuillType from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 
 const hourOptions = Array.from({ length: 24 }, (_, i) =>
@@ -29,14 +32,18 @@ const TENTATIVE_LABEL = "仮予約";
 const capacityOptions = Array.from({ length: 200 }, (_, i) => i + 1);
 const costOptions = Array.from({ length: 101 }, (_, i) => i * 100);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ReactQuill = dynamic(() => import("react-quill").then(m => m.default), { ssr: false }) as any;
+
 interface EventForm {
   title: string;
-  venue: string;
+  venues: string[];
   date: string;
   cost: number;
   description: string;
   seats: Seat[];
   imageUrl: string;
+  greetingDelta: { ops: unknown[] } | null;
 }
 
 export default function EditEventPage() {
@@ -45,12 +52,13 @@ export default function EditEventPage() {
 
   const [form, setForm] = useState<EventForm>({
     title: "",
-    venue: "",
+    venues: [""],
     date: "",
     cost: 0,
     description: "",
     seats: [],
     imageUrl: "",
+    greetingDelta: null,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -65,12 +73,13 @@ export default function EditEventPage() {
         const data = snapshot.data();
         setForm({
           title: data.title,
-          venue: data.venue,
+          venues: data.venues || (data.venue ? [data.venue] : [""]),
           date: data.date.toDate().toISOString().split("T")[0],
           cost: data.cost,
           description: data.description,
-          seats: data.seats,
+          seats: data.seats || [],
           imageUrl: data.imageUrl || "",
+          greetingDelta: data.greetingDelta || null,
         });
         setPreviewUrl(data.imageUrl || "");
       }
@@ -115,6 +124,65 @@ export default function EditEventPage() {
     }
   };
 
+  const handleVenueInput = (index: number) => (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const venues = [...form.venues];
+    venues[index] = e.target.value;
+    setForm({ ...form, venues });
+    e.target.style.height = "auto";
+    e.target.style.height = `${e.target.scrollHeight}px`;
+  };
+
+  const addVenueField = () => {
+    setForm({ ...form, venues: [...form.venues, ""] });
+  };
+
+  const removeVenueField = (index: number) => {
+    const venues = [...form.venues];
+    venues.splice(index, 1);
+    setForm({ ...form, venues: venues.length ? venues : [""] });
+  };
+
+  const quillRef = useRef<ReactQuillType | null>(null);
+  const quillModules = useMemo(
+    () => ({
+      toolbar: { container: [["bold", "italic", "underline"], [{ align: [] }], ["link"]] },
+      clipboard: { matchVisual: false },
+    }),
+    []
+  );
+  const quillFormats = useMemo(
+    () => ["bold", "italic", "underline", "align", "link"],
+    []
+  );
+  const greetingTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  function isPlainJSON(v: unknown): boolean {
+    try {
+      JSON.stringify(v);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const handleGreetingChange = (
+    _value: string,
+    _delta: unknown,
+    _source: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    editor: any
+  ) => {
+    if (greetingTimeout.current) clearTimeout(greetingTimeout.current);
+    greetingTimeout.current = setTimeout(() => {
+      const contents = editor.getContents();
+      if (isPlainJSON(contents)) {
+        setForm((prev) => ({ ...prev, greetingDelta: contents }));
+      }
+    }, 500);
+  };
+
   const sortSeats = (seats: Seat[]) =>
     [...seats].sort((a, b) => {
       if (a.time === TENTATIVE_LABEL) return 1;
@@ -148,11 +216,20 @@ export default function EditEventPage() {
       imageUrl = await getDownloadURL(storageRef);
     }
 
+    const venues = form.venues.map((v) => v.trim()).filter((v) => v);
+    if (form.greetingDelta && !isPlainJSON(form.greetingDelta)) {
+      alert("ごあいさつの保存に失敗しました");
+      return;
+    }
+
     const eventData = {
-      ...form,
+      title: form.title,
+      venues: venues.length ? venues : null,
+      greetingDelta: form.greetingDelta || null,
       imageUrl,
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
+      description: form.description,
       seats: form.seats.map((seat) => ({
         time: seat.time,
         capacity: Number(seat.capacity),
@@ -207,16 +284,45 @@ export default function EditEventPage() {
           />
         </div>
         <div>
-          <label className="block mb-1">会場</label>
-          <input
-            type="text"
-            name="venue"
-            value={form.venue}
-            onChange={handleChange}
-            placeholder="例：東京会場"
-            className="border p-2 w-full"
-            required
+          <label className="block mb-1">ごあいさつ</label>
+          <ReactQuill
+            ref={quillRef}
+            value={form.greetingDelta || { ops: [] }}
+            onChange={handleGreetingChange}
+            modules={quillModules}
+            formats={quillFormats}
           />
+        </div>
+        <div>
+          <label className="block mb-1">会場</label>
+          {form.venues.map((v, i) => (
+            <div key={i} className="flex items-start gap-2 mb-2">
+              <textarea
+                value={v}
+                onChange={handleVenueInput(i)}
+                className="border p-2 w-full"
+                rows={1}
+                maxLength={1000}
+                style={{ overflow: "hidden" }}
+              />
+              {form.venues.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeVenueField(i)}
+                  className="text-red-500 text-sm"
+                >
+                  削除
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addVenueField}
+            className="bg-gray-200 px-3 py-1 rounded"
+          >
+            行を追加
+          </button>
         </div>
         <div>
           <label className="block mb-1">日付</label>

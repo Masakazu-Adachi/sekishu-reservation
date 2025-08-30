@@ -17,10 +17,12 @@ export default function EventsPage() {
       const data = snapshot.docs
         .map((doc) => {
           const d = doc.data();
+          const venues = d.venues || (d.venue ? [d.venue] : []);
           return {
             id: doc.id,
             title: d.title,
-            venue: d.venue,
+            venue: venues[0] || "",
+            venues,
             rawDate: d.date?.toDate() as Date,
             cost: d.cost,
             description: d.description,
@@ -41,6 +43,7 @@ export default function EventsPage() {
             id: ev.id,
             title: ev.title,
             venue: ev.venue,
+            venues: ev.venues,
             date: ev.rawDate.toLocaleDateString("ja-JP", {
               year: "numeric",
               month: "2-digit",
