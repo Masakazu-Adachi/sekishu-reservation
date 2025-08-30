@@ -3,6 +3,7 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import QuillClientEditor, { QuillClientHandle } from "@/components/QuillClientEditor";
 import type Quill from "quill";
+import type { DeltaOperation } from "quill/core";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -128,7 +129,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       const el = node as HTMLElement;
       const width = el.getAttribute("width") || el.style.width;
       if (width && delta.ops) {
-        delta.ops.forEach(op => {
+        (delta.ops as DeltaOperation[]).forEach(op => {
           op.attributes = { ...(op.attributes ?? {}), width };
         });
       }
@@ -466,8 +467,9 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       const editor = quillRef.current?.getEditor();
       if (!editor) throw new Error("editor not ready");
       await normalizeDataImagesInEditor(editor, storagePath);
-      const delta = editor.getContents();
-      const bodyDelta = { ops: delta.ops };
+        const delta = editor.getContents();
+        const ops = delta.ops as DeltaOperation[] | undefined;
+        const bodyDelta = { ops };
       if (!isPlainJSON(bodyDelta)) {
         console.error("bodyDelta is not serializable JSON", bodyDelta);
         showToast("保存に失敗しました");
@@ -481,7 +483,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         console.warn("delta size exceeds 800kB", { deltaSize });
       }
       const used: string[] = [];
-      for (const op of delta.ops ?? []) {
+        for (const op of ops ?? []) {
         if (op.insert && typeof op.insert === "object") {
           if ("image" in op.insert) {
             used.push((op.insert as { image: string }).image);
