@@ -254,6 +254,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
               value?.columns ?? (urls.length === 3 ? 3 : urls.length === 2 ? 2 : 2);
             node.setAttribute("data-urls", JSON.stringify(urls));
             node.setAttribute("data-columns", String(columns));
+            if (urls.length >= 2) node.setAttribute("data-gallery", "");
             if (urls.length === 2) {
               node.className = "my-4 grid gap-2 grid-cols-1 sm:grid-cols-2";
             } else if (urls.length === 3) {

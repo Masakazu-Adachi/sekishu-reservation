@@ -7,6 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import type { BlogPost } from "@/types";
 import LinkBackToHome from "@/components/LinkBackToHome";
 import { deltaToHtml } from "@/lib/quillDelta";
+import RichHtml from "@/components/RichHtml";
 
 export default function PastPostDetailPage() {
   const { id } = useParams();
@@ -55,10 +56,9 @@ export default function PastPostDetailPage() {
         />
       )}
       <h1 className="text-3xl font-bold mb-4 font-serif">{post.title}</h1>
-      <div
-        className="text-gray-700 mb-4"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <div className="text-gray-700 mb-4">
+        <RichHtml html={html} />
+      </div>
       <p className="text-right text-sm text-gray-500">{date}</p>
     </main>
   );
