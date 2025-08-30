@@ -1,7 +1,7 @@
 import {
   getStorage,
   ref,
-  uploadBytes,
+  uploadBytesResumable,
   getDownloadURL,
   getMetadata,
   list,
@@ -17,8 +17,6 @@ const EXT_TO_TYPE: Record<string, string> = {
   png: "image/png",
   gif: "image/gif",
   webp: "image/webp",
-  svg: "image/svg+xml",
-  svgz: "image/svg+xml",
 };
 
 const TYPE_TO_EXT: Record<string, string> = Object.fromEntries(
@@ -58,7 +56,12 @@ export const STORAGE_ROOT = "images";
 export async function uploadImageToStorage(
   input: File | Blob | { dataUrl: string },
   basePath: string,
-  opts?: { postId?: string; uploadedBy?: string }
+  opts?: {
+    postId?: string;
+    uploadedBy?: string;
+    eventId?: string;
+    onProgress?: (p: number) => void;
+  }
 ): Promise<UploadResult> {
   let blob: Blob;
   let name: string | undefined;
@@ -90,12 +93,31 @@ export async function uploadImageToStorage(
     customMetadata: {
       uploadedBy: opts?.uploadedBy ?? "",
       postId: opts?.postId ?? "",
+      eventId: opts?.eventId ?? "",
       originalName: name ?? "image",
     },
   };
-  await uploadBytes(r, blob, metadata);
-  const url = await retryGetDownloadURL(r);
-  return { url, path };
+  const task = uploadBytesResumable(r, blob, metadata);
+  return await new Promise<UploadResult>((resolve, reject) => {
+    task.on(
+      "state_changed",
+      (snapshot) => {
+        if (opts?.onProgress) {
+          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          opts.onProgress(Math.round(p));
+        }
+      },
+      reject,
+      async () => {
+        try {
+          const url = await retryGetDownloadURL(task.snapshot.ref);
+          resolve({ url, path });
+        } catch (e) {
+          reject(e);
+        }
+      }
+    );
+  });
 }
 
 export async function listImages(prefix: string, pageToken?: string) {

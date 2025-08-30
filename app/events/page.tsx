@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
@@ -34,7 +33,8 @@ export default function EventsPage() {
               (sum: number, seat) => sum + (seat.capacity || 0),
               0
             ),
-            imageUrl: d.imageUrl || "/event1.jpg",
+            coverImageUrl: d.coverImageUrl || "",
+            coverImageAlt: d.coverImageAlt || "",
           };
         })
         .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
@@ -54,7 +54,8 @@ export default function EventsPage() {
             description: ev.description,
             participants: ev.participants,
             capacity: ev.capacity,
-            imageUrl: ev.imageUrl,
+            coverImageUrl: ev.coverImageUrl,
+            coverImageAlt: ev.coverImageAlt,
           } as EventSummary;
         });
       setEvents(data);
@@ -97,15 +98,15 @@ export default function EventsPage() {
               </Link>
             </div>
             <div className="w-full md:w-1/3">
-              <div className="relative w-full h-48 md:h-64 rounded overflow-hidden">
-                <Image
-                  src={event.imageUrl}
-                  alt={event.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
-              </div>
+              {event.coverImageUrl && (
+                <div className="relative w-full h-48 md:h-64 rounded overflow-hidden">
+                  <img
+                    src={event.coverImageUrl}
+                    alt={event.coverImageAlt || ""}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              )}
             </div>
           </div>
         ))}

@@ -19,7 +19,12 @@ export interface Event {
   description?: string;
   cost?: number;
   seats?: Seat[];
-  imageUrl?: string;
+  /** カード用の画像 URL */
+  coverImageUrl?: string;
+  /** Storage 内のパス */
+  coverImagePath?: string;
+  /** カード画像の代替テキスト */
+  coverImageAlt?: string;
 }
 
 export interface EventSummary {
@@ -32,7 +37,8 @@ export interface EventSummary {
   description?: string;
   participants?: number;
   capacity?: number;
-  imageUrl: string;
+  coverImageUrl?: string;
+  coverImageAlt?: string;
 }
 
 export interface Reservation {
