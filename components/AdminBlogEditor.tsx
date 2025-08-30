@@ -1,15 +1,8 @@
 "use client";
 
-// ポリフィルは最速で適用
-import "@/app/react-dom-finddomnode-polyfill";
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
-import dynamic from "next/dynamic";
-import type ReactQuillType from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import QuillClientEditor, { QuillClientHandle } from "@/components/QuillClientEditor";
 import type Quill from "quill";
-// ReactQuill はクライアントのみ読み込み（SSG/SSRで落ちないように）
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReactQuill = dynamic(() => import("react-quill").then(m => m.default), { ssr: false }) as any;
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -106,7 +99,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const inputRef = useRef<HTMLInputElement>(null);
-  const quillRef = useRef<ReactQuillType | null>(null);
+  const quillRef = useRef<QuillClientHandle | null>(null);
   const [isQuillReady, setIsQuillReady] = useState(false); // 登録完了フラグ
   const [toast, setToast] = useState<string | null>(null);
 
@@ -217,26 +210,17 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     };
   }, [isQuillReady, storagePath]);
 
-  // 画像リサイズ⇒ blot-formatter に切替。
-  // 「ReactQuill が使う Quill」に登録。完了まで描画しない。
+  // 画像リサイズ⇒ blot-formatter に切替。Quill に登録し終わるまで描画しない。
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [ReactQuillMod, BFMod] = await Promise.all([
-          import("react-quill"),
+        const [QMod, BFMod] = await Promise.all([
+          import("quill"),
           import("quill-blot-formatter"),
         ]);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rqAny: any = (ReactQuillMod as any).default ?? ReactQuillMod;
-        // ReactQuillが保持するQuill（無ければ quill を fallback）
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let QuillAny: any = (ReactQuillMod as any).Quill;
-        if (!QuillAny) {
-          const QMod = await import("quill");
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          QuillAny = (QMod as any).default ?? QMod;
-        }
+        const QuillAny: any = (QMod as any).default ?? QMod;
         // カスタム Image blot（width フォーマット対応）
         const BaseImage = QuillAny.import("formats/image");
         class ImageEx extends BaseImage {
@@ -297,23 +281,22 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         // blot-formatter のクラス
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const BlotFormatter: any = (BFMod as any).default ?? BFMod;
-        if (!mounted) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const register = (Q: any) => {
+        const register = (Q: { register?: (path: string, mod: unknown) => void }) => {
           if (Q && typeof Q.register === "function") {
             try {
               Q.register("modules/blotFormatter", BlotFormatter);
             } catch {}
           }
         };
-        if (rqAny?.Quill && rqAny.Quill !== QuillAny) register(rqAny.Quill);
         register(QuillAny);
-        setIsQuillReady(true);
+        if (mounted) setIsQuillReady(true);
       } catch {
-        setIsQuillReady(true);
+        if (mounted) setIsQuillReady(true);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
 
@@ -573,7 +556,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         />
         {/* 登録完了まではエディタを描画しない（初期化順序の競合を避ける） */}
         {isQuillReady && (
-          <ReactQuill
+          <QuillClientEditor
             ref={quillRef}
             value={body}
             onChange={handleChange}

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./quill-content.css";
-import "./react-dom-finddomnode-polyfill";
 
 export const metadata: Metadata = {
   title: "石州流野村派 茶会行事 予約サイト",

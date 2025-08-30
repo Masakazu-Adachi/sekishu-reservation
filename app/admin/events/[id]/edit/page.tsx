@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import dynamic from "next/dynamic";
 import { useRouter, useParams } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
 import {
@@ -19,8 +18,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 import type { Seat } from "@/types";
-import type ReactQuillType from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import QuillClientEditor, { QuillClientHandle } from "@/components/QuillClientEditor";
 
 
 const hourOptions = Array.from({ length: 24 }, (_, i) =>
@@ -32,8 +30,6 @@ const TENTATIVE_LABEL = "仮予約";
 const capacityOptions = Array.from({ length: 200 }, (_, i) => i + 1);
 const costOptions = Array.from({ length: 101 }, (_, i) => i * 100);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReactQuill = dynamic(() => import("react-quill").then(m => m.default), { ssr: false }) as any;
 
 interface EventForm {
   title: string;
@@ -144,7 +140,7 @@ export default function EditEventPage() {
     setForm({ ...form, venues: venues.length ? venues : [""] });
   };
 
-  const quillRef = useRef<ReactQuillType | null>(null);
+  const quillRef = useRef<QuillClientHandle | null>(null);
   const quillModules = useMemo(
     () => ({
       toolbar: { container: [["bold", "italic", "underline"], [{ align: [] }], ["link"]] },
@@ -285,7 +281,7 @@ export default function EditEventPage() {
         </div>
         <div>
           <label className="block mb-1">ごあいさつ</label>
-          <ReactQuill
+          <QuillClientEditor
             ref={quillRef}
             value={form.greetingDelta || { ops: [] }}
             onChange={handleGreetingChange}
