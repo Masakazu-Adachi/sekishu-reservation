@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   doc,
   getDoc,
@@ -15,7 +15,8 @@ import {
   writeBatch,
   addDoc,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { uploadImageToStorage, deleteImage } from "@/lib/storageImages";
+import { validateImage } from "@/lib/validateImage";
 import Delta from "quill-delta";
 import type { Delta as DeltaType } from "quill";
 
@@ -32,6 +33,32 @@ const TENTATIVE_LABEL = "仮予約";
 const capacityOptions = Array.from({ length: 200 }, (_, i) => i + 1);
 const costOptions = Array.from({ length: 101 }, (_, i) => i * 100);
 
+async function downscaleIfNeeded(file: File): Promise<Blob | File> {
+  return await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      if (img.width <= 2000) {
+        resolve(file);
+        return;
+      }
+      const canvas = document.createElement("canvas");
+      const scale = 2000 / img.width;
+      canvas.width = 2000;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        resolve(blob || file);
+      }, "image/jpeg", 0.85);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 
 interface EventForm {
   title: string;
@@ -40,7 +67,9 @@ interface EventForm {
   cost: number;
   description: string;
   seats: Seat[];
-  imageUrl: string;
+  coverImageUrl: string;
+  coverImagePath: string;
+  coverImageAlt: string;
   greetingDelta: DeltaType;
 }
 
@@ -55,11 +84,14 @@ export default function EditEventPage() {
     cost: 0,
     description: "",
     seats: [],
-    imageUrl: "",
+    coverImageUrl: "",
+    coverImagePath: "",
+    coverImageAlt: "",
     greetingDelta: new Delta() as DeltaType,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -76,12 +108,13 @@ export default function EditEventPage() {
           cost: data.cost,
           description: data.description,
           seats: data.seats || [],
-          imageUrl: data.imageUrl || "",
+          coverImageUrl: data.coverImageUrl || "",
+          coverImagePath: data.coverImagePath || "",
+          coverImageAlt: data.coverImageAlt || "",
           greetingDelta: data.greetingDelta
             ? (new Delta(data.greetingDelta) as DeltaType)
             : (new Delta() as DeltaType),
         });
-        setPreviewUrl(data.imageUrl || "");
       }
     };
     fetchEvent();
@@ -116,12 +149,72 @@ export default function EditEventPage() {
     }
   };
 
-  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+  const handleCoverImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    if (!validateImage(file)) return;
+    setCoverFile(file);
+    const preview = URL.createObjectURL(file);
+    setForm({ ...form, coverImageUrl: preview });
+    if (eventId !== "new") {
+      setUploading(true);
+      const blob = await downscaleIfNeeded(file);
+      try {
+        const { url, path } = await uploadImageToStorage(blob, `events/${eventId}`, {
+          uploadedBy: "admin",
+          eventId,
+          onProgress: setUploadProgress,
+        });
+        await updateDoc(doc(db, "events", eventId), {
+          coverImageUrl: url,
+          coverImagePath: path,
+        });
+        if (form.coverImagePath) {
+          try {
+            await deleteImage(form.coverImagePath);
+          } catch {
+            alert("旧画像の削除に失敗しました");
+          }
+        }
+        setForm((prev) => ({
+          ...prev,
+          coverImageUrl: url,
+          coverImagePath: path,
+        }));
+        setCoverFile(null);
+      } catch {
+        alert("画像のアップロードに失敗しました");
+      } finally {
+        setUploading(false);
+      }
     }
+  };
+
+  const handleDeleteCoverImage = async () => {
+    if (eventId !== "new" && form.coverImagePath) {
+      setUploading(true);
+      try {
+        await deleteImage(form.coverImagePath);
+        await updateDoc(doc(db, "events", eventId), {
+          coverImageUrl: "",
+          coverImagePath: "",
+          coverImageAlt: "",
+        });
+      } catch {
+        alert("画像の削除に失敗しました");
+      } finally {
+        setUploading(false);
+      }
+    }
+    setForm((prev) => ({
+      ...prev,
+      coverImageUrl: "",
+      coverImagePath: "",
+      coverImageAlt: "",
+    }));
+    setCoverFile(null);
   };
 
   const handleVenueInput = (index: number) => (
@@ -196,23 +289,16 @@ export default function EditEventPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    let imageUrl = form.imageUrl;
-    if (imageFile) {
-      const storageRef = ref(storage, `event-images/${imageFile.name}`);
-      await uploadBytes(storageRef, imageFile);
-      imageUrl = await getDownloadURL(storageRef);
-    }
+    if (uploading) return;
 
     const venues = form.venues.map((v) => v.trim()).filter((v) => v);
-    const eventData = {
+    const baseData = {
       title: form.title,
       venues: venues.length ? venues : null,
       greetingDelta:
         form.greetingDelta.ops && form.greetingDelta.ops.length
           ? { ops: form.greetingDelta.ops }
           : null,
-      imageUrl,
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
       description: form.description,
@@ -224,11 +310,38 @@ export default function EditEventPage() {
     };
 
     if (eventId === "new") {
-      await addDoc(collection(db, "events"), eventData);
+      const docRef = await addDoc(collection(db, "events"), baseData);
+      if (coverFile) {
+        setUploading(true);
+        const blob = await downscaleIfNeeded(coverFile);
+        try {
+          const { url, path } = await uploadImageToStorage(blob, `events/${docRef.id}`, {
+            uploadedBy: "admin",
+            eventId: docRef.id,
+            onProgress: setUploadProgress,
+          });
+          await updateDoc(docRef, {
+            coverImageUrl: url,
+            coverImagePath: path,
+            coverImageAlt: form.coverImageAlt || "",
+          });
+        } catch {
+          alert("画像のアップロードに失敗しました");
+        } finally {
+          setUploading(false);
+        }
+      } else if (form.coverImageAlt) {
+        await updateDoc(docRef, { coverImageAlt: form.coverImageAlt });
+      }
       alert("新しいイベントを作成しました");
     } else {
       const docRef = doc(db, "events", eventId);
-      await updateDoc(docRef, eventData);
+      await updateDoc(docRef, {
+        ...baseData,
+        coverImageUrl: form.coverImageUrl || "",
+        coverImagePath: form.coverImagePath || "",
+        coverImageAlt: form.coverImageAlt || "",
+      });
       alert("イベントを更新しました");
     }
 
@@ -338,15 +451,50 @@ export default function EditEventPage() {
           </select>
         </div>
         <div>
-          <label className="block mb-1">イベント画像</label>
-          {previewUrl && (
-            <img src={previewUrl} alt="preview" className="w-full mb-2 rounded" />
+          <label className="block mb-1">カード画像</label>
+          {form.coverImageUrl && (
+            <img
+              src={form.coverImageUrl}
+              alt={form.coverImageAlt || ""}
+              className="w-full mb-2 rounded border"
+            />
           )}
+          {uploading && (
+            <div className="mb-2">
+              <div className="w-full bg-gray-200 rounded h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <p className="text-sm text-center">{uploadProgress}%</p>
+            </div>
+          )}
+          <div className="flex gap-2 items-center">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleCoverImageChange}
+              className="border p-2 flex-1"
+              disabled={uploading}
+            />
+            {form.coverImageUrl && (
+              <button
+                type="button"
+                onClick={handleDeleteCoverImage}
+                className="px-3 py-1 border rounded"
+                disabled={uploading}
+              >
+                画像を削除
+              </button>
+            )}
+          </div>
           <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageFileChange}
-            className="border p-2 w-full"
+            type="text"
+            value={form.coverImageAlt}
+            onChange={(e) => setForm({ ...form, coverImageAlt: e.target.value })}
+            placeholder="Alt テキスト（任意）"
+            className="border p-2 w-full mt-2"
           />
         </div>
         <div>
@@ -441,7 +589,8 @@ export default function EditEventPage() {
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+          className="bg-blue-600 text-white px-4 py-2 rounded w-full disabled:opacity-50"
+          disabled={uploading}
         >
           保存する
         </button>

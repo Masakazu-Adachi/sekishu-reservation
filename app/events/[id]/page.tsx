@@ -213,9 +213,13 @@ export default function EventDetailPage() {
 
   return (
     <main className="p-6 max-w-xl mx-auto font-serif">
-      {event.imageUrl && (
+      {event.coverImageUrl && (
         <div className="mb-4">
-          <img src={event.imageUrl} alt={event.title} className="w-full rounded" />
+          <img
+            src={event.coverImageUrl}
+            alt={event.coverImageAlt || ""}
+            className="w-full rounded"
+          />
         </div>
       )}
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
