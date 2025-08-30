@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "date-fns": "^4.1.0",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "firebase": "^11.6.1",
+    "html-react-parser": "^5.2.6",
     "next": "15.3.1",
     "quill": "^2.0.0",
     "quill-blot-formatter": "^1.0.5",
