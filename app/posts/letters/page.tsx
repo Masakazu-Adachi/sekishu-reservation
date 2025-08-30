@@ -1,35 +1,27 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import type { BlogPost } from "@/types";
 import LinkBackToHome from "@/components/LinkBackToHome";
-import BlogCard from "@/components/BlogCard";
+import ContactFormButton from "@/components/ContactFormButton";
+import type { Metadata } from "next";
 
-export default function LettersPage() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
+export const metadata: Metadata = {
+  title: "お問い合わせ | 石州流野村派 茶会行事 予約サイト",
+  description: "お問い合わせページです",
+  openGraph: {
+    title: "お問い合わせ | 石州流野村派 茶会行事 予約サイト",
+    description: "お問い合わせページです",
+  },
+  twitter: {
+    title: "お問い合わせ | 石州流野村派 茶会行事 予約サイト",
+    description: "お問い合わせページです",
+  },
+};
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const q = query(collection(db, "letters"), orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as Omit<BlogPost,"id">) }));
-      setPosts(data);
-    };
-    fetchPosts();
-  }, []);
-
+export default function ContactPage() {
   return (
     <main className="p-6 max-w-5xl mx-auto font-serif">
       <LinkBackToHome />
-      <h1 className="text-2xl font-bold mb-6 text-center font-serif">
-        通信ページ
-      </h1>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {posts.map((post) => (
-          <BlogCard key={post.id} post={post} href={`/posts/letters/${post.id}`} />
-        ))}
+      <h1 className="text-2xl font-bold mb-6 text-center font-serif">お問い合わせ</h1>
+      <div className="text-center">
+        <ContactFormButton />
       </div>
     </main>
   );

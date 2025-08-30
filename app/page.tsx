@@ -103,7 +103,7 @@ export default function HomePage() {
           </Link>
           <Link href="/posts/letters">
             <button className="bg-primary hover:bg-primary-hover text-white py-2 px-6 rounded shadow font-serif">
-              通信ページ
+              お問い合わせ
             </button>
           </Link>
         </div>
