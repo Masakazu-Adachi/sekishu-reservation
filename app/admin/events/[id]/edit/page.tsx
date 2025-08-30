@@ -16,6 +16,8 @@ import {
   addDoc,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import Delta from "quill-delta";
+import type { Delta as DeltaType } from "quill";
 
 import type { Seat } from "@/types";
 import QuillClientEditor, { QuillClientHandle } from "@/components/QuillClientEditor";
@@ -39,7 +41,7 @@ interface EventForm {
   description: string;
   seats: Seat[];
   imageUrl: string;
-  greetingDelta: { ops: unknown[] } | null;
+  greetingDelta: DeltaType;
 }
 
 export default function EditEventPage() {
@@ -54,7 +56,7 @@ export default function EditEventPage() {
     description: "",
     seats: [],
     imageUrl: "",
-    greetingDelta: null,
+    greetingDelta: new Delta() as DeltaType,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -75,7 +77,9 @@ export default function EditEventPage() {
           description: data.description,
           seats: data.seats || [],
           imageUrl: data.imageUrl || "",
-          greetingDelta: data.greetingDelta || null,
+          greetingDelta: data.greetingDelta
+            ? (new Delta(data.greetingDelta) as DeltaType)
+            : (new Delta() as DeltaType),
         });
         setPreviewUrl(data.imageUrl || "");
       }
@@ -154,28 +158,16 @@ export default function EditEventPage() {
   );
   const greetingTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  function isPlainJSON(v: unknown): boolean {
-    try {
-      JSON.stringify(v);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   const handleGreetingChange = (
     _value: string,
-    _delta: unknown,
+    _delta: DeltaType,
     _source: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     editor: any
   ) => {
     if (greetingTimeout.current) clearTimeout(greetingTimeout.current);
     greetingTimeout.current = setTimeout(() => {
-      const contents = editor.getContents();
-      if (isPlainJSON(contents)) {
-        setForm((prev) => ({ ...prev, greetingDelta: contents }));
-      }
+      setForm((prev) => ({ ...prev, greetingDelta: editor.getContents() }));
     }, 500);
   };
 
@@ -213,15 +205,13 @@ export default function EditEventPage() {
     }
 
     const venues = form.venues.map((v) => v.trim()).filter((v) => v);
-    if (form.greetingDelta && !isPlainJSON(form.greetingDelta)) {
-      alert("ごあいさつの保存に失敗しました");
-      return;
-    }
-
     const eventData = {
       title: form.title,
       venues: venues.length ? venues : null,
-      greetingDelta: form.greetingDelta || null,
+      greetingDelta:
+        form.greetingDelta.ops && form.greetingDelta.ops.length
+          ? { ops: form.greetingDelta.ops }
+          : null,
       imageUrl,
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
@@ -283,7 +273,7 @@ export default function EditEventPage() {
           <label className="block mb-1">ごあいさつ</label>
           <QuillClientEditor
             ref={quillRef}
-            value={form.greetingDelta || { ops: [] }}
+            value={form.greetingDelta}
             onChange={handleGreetingChange}
             modules={quillModules}
             formats={quillFormats}

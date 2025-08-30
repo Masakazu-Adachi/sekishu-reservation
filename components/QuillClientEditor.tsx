@@ -34,6 +34,9 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
     useEffect(() => {
       let quill: Quill | null = null;
       let mounted = true;
+      const handleChange = (delta: Delta, _old: Delta, source: string) => {
+        onChange?.(quill!.root.innerHTML, delta, source, quill!);
+      };
       (async () => {
         const QuillMod = await import("quill");
         const QuillCtor = QuillMod.default as unknown as typeof Quill;
@@ -50,15 +53,13 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
             quill.setContents(value as Delta);
           }
         }
-        quill.on("text-change", (delta, _old, source) => {
-          onChange?.(quill!.root.innerHTML, delta, source, quill!);
-        });
+        quill.on("text-change", handleChange);
         if (mounted) editorRef.current = quill;
       })();
       return () => {
         mounted = false;
         if (quill) {
-          quill.off("text-change");
+          quill.off("text-change", handleChange);
           editorRef.current = null;
           quill = null;
         }
@@ -70,7 +71,7 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
       const quill = editorRef.current;
       if (!quill) return;
       if (!value) {
-        quill.setContents([]);
+        quill.setContents([] as unknown as Delta);
         return;
       }
       if (typeof value === "string") {
