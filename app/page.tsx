@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { INK_BUTTON } from "@/components/ui/buttonStyles";
 
 export default function HomePage() {
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
@@ -91,33 +92,24 @@ export default function HomePage() {
       {/* 各ページへのリンク */}
       <section className="py-12 max-w-5xl mx-auto px-4 mb-8 sm:mb-10">
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto">
-          <Link
-            href="/events"
-            className="inline-flex items-center justify-center h-10 sm:h-11 w-full rounded bg-primary hover:bg-primary-hover text-white shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-          >
+          <Link href="/events" className={`${INK_BUTTON} w-full`}>
             お茶会のご案内
           </Link>
-          <Link
-            href="/posts/past"
-            className="inline-flex items-center justify-center h-10 sm:h-11 w-full rounded bg-primary hover:bg-primary-hover text-white shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-          >
+          <Link href="/posts/past" className={`${INK_BUTTON} w-full`}>
             過去の茶会紹介
           </Link>
-          <Link
-            href="/posts/letters"
-            className="inline-flex items-center justify-center h-10 sm:h-11 w-full rounded bg-primary hover:bg-primary-hover text-white shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-          >
+          <Link href="/posts/letters" className={`${INK_BUTTON} w-full`}>
             お問い合わせ
           </Link>
         </div>
       </section>
 
       {/* 予約確認セクション */}
-      <section className="mt-8 max-w-4xl mx-auto">
-        <h3 className="text-center text-sm sm:text-base">すでに予約済みの方はこちら</h3>
+      <section className="mt-10 max-w-4xl w-full mx-auto text-center">
+        <h3 className="text-sm sm:text-base">すでに予約済みの方はこちら</h3>
         <Link
           href="/reservations/confirm"
-          className="mx-auto mt-4 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium bg-primary text-white hover:bg-primary-hover shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          className={`${INK_BUTTON} mx-auto mt-3`}
         >
           予約の確認・変更はこちら
         </Link>
