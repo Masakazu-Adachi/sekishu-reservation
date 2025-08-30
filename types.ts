@@ -9,7 +9,12 @@ import type { Timestamp } from "firebase/firestore";
 export interface Event {
   id: string;
   title: string;
-  venue: string;
+  /** 単一会場（レガシー） */
+  venue?: string;
+  /** 複数会場 */
+  venues?: string[] | null;
+  /** ごあいさつの Quill Delta */
+  greetingDelta?: { ops: unknown[] } | null;
   date: Timestamp;
   description?: string;
   cost?: number;
@@ -21,6 +26,7 @@ export interface EventSummary {
   id: string;
   title: string;
   venue: string;
+  venues?: string[] | null;
   date: string;
   cost?: number;
   description?: string;
