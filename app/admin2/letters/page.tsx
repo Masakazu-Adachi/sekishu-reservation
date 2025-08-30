@@ -11,7 +11,7 @@ export default function LettersAdminPage() {
       <LinkBackToAdmin2Top />
       <AdminBlogEditor
         collectionName="letters"
-        heading="通信ページ"
+        heading="お問い合わせ"
         storagePath={`${STORAGE_ROOT}/letters`}
       />
     </main>
