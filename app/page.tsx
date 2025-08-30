@@ -113,11 +113,11 @@ export default function HomePage() {
       </section>
 
       {/* 予約確認セクション */}
-      <section className="mt-6 sm:mt-8 bg-slate-700 text-white/90 px-6 py-8 sm:px-10 sm:py-10 rounded-2xl ring-1 ring-white/10 shadow-lg max-w-4xl mx-auto">
+      <section className="mt-8 max-w-4xl mx-auto">
         <h3 className="text-center text-sm sm:text-base">すでに予約済みの方はこちら</h3>
         <Link
           href="/reservations/confirm"
-          className="mx-auto mt-4 inline-flex items-center justify-center h-11 px-5 text-sm font-medium rounded-xl bg-white text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-slate-700"
+          className="mx-auto mt-4 inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium bg-primary text-white hover:bg-primary-hover shadow font-serif focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         >
           予約の確認・変更はこちら
         </Link>
