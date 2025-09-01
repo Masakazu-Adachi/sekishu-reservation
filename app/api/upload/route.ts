@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { bucket } from '@/lib/firebaseAdmin';
-import { cookies, headers as nextHeaders } from 'next/headers';
+import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,8 +12,7 @@ async function isAuthorized() {
     return false;
   }
   const cookieToken = (await cookies()).get('admin_upload_token')?.value?.trim();
-  const headerToken = (await nextHeaders()).get('x-admin-upload-token')?.trim();
-  return cookieToken === envToken || headerToken === envToken;
+  return cookieToken === envToken;
 }
 
 export async function POST(req: Request) {

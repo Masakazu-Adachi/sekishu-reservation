@@ -12,10 +12,8 @@ export default function EnsureAdminCookie() {
     const has = document.cookie.includes("admin_upload_token=");
     if (has) return;
 
-    const token = process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN;
     fetch("/api/admin/session", {
       method: "POST",
-      headers: token ? { "x-admin-upload-token": token } : undefined,
     }).catch(() => {});
   }, []);
 
