@@ -8,33 +8,15 @@ export async function uploadViaApi(
   const formData = new FormData();
   formData.append('file', file);
   formData.append('basePath', basePath);
-
-  return await new Promise<UploadResponse>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/upload');
-    const token = process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN;
-    if (!token) {
-      throw new Error('NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN is not defined');
-    }
-    console.log('sending token', token);
-    xhr.setRequestHeader('x-admin-upload-token', token);
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText) as UploadResponse);
-        } catch (e) {
-          reject(e);
-        }
-      } else {
-        reject(new Error('upload failed'));
-      }
-    };
-    xhr.onerror = () => reject(new Error('network error'));
-    xhr.send(formData);
+  onProgress?.(0);
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
   });
+  if (!res.ok) {
+    throw new Error('upload failed');
+  }
+  const data = (await res.json()) as UploadResponse;
+  onProgress?.(100);
+  return data;
 }

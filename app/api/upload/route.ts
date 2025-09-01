@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import { bucket } from '@/lib/firebaseAdmin';
+import { cookies, headers as nextHeaders } from 'next/headers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+function isAuthorized() {
+  const cookieToken = cookies().get('admin_upload_token')?.value?.trim();
+  const headerToken = nextHeaders().get('x-admin-upload-token')?.trim();
+  const envToken = process.env.ADMIN_UPLOAD_TOKEN?.trim();
+  return !!envToken && (cookieToken === envToken || headerToken === envToken);
+}
+
 export async function POST(req: Request) {
-  const headerToken = req.headers.get('x-admin-upload-token');
-  console.log('header=', headerToken, 'env=', process.env.ADMIN_UPLOAD_TOKEN);
-  if (headerToken?.trim() != process.env.ADMIN_UPLOAD_TOKEN?.trim()) {
+  if (!isAuthorized()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
