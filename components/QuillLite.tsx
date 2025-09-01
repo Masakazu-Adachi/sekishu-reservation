@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import type QuillType from "quill";
-// テーマCSSはグローバルに読み込まれているためここでは未インポート
+// Quill テーマCSS（※ react-quill ではなく quill のCSSを使う）
+import "quill/dist/quill.snow.css";
 import { uploadImage } from "@/lib/uploadImage";
 
 type Props = {
@@ -13,7 +13,9 @@ type Props = {
 
 export default function QuillLite({ value, onChange, eventId }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const quillRef = useRef<QuillType | null>(null);
+  // 動作優先：インスタンスは any 扱いにする
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const quillRef = useRef<any | null>(null);
   const onChangeRef = useRef(onChange);
   const initialAppliedRef = useRef(false);
 
@@ -40,17 +42,20 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
     if (quillRef.current) return; // 既に初期化済みなら何もしない
 
     (async () => {
-      const Quill = (await import("quill")).default as unknown as typeof import("quill");
+      // Quill コンストラクタを any として扱う（型エラー回避）
+      const { default: Quill } = await import("quill");
       // 念のため空にしてから初期化（増殖防止）
       containerRef.current!.innerHTML = "";
 
-      const editor = new Quill(containerRef.current!, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const editor: any = new (Quill as any)(containerRef.current!, {
         theme: "snow",
         modules: {
           toolbar: {
             container: toolbar,
             handlers: {
-              image: async () => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              image: async function handleImage(this: any) {
                 const input = document.createElement("input");
                 input.type = "file";
                 input.accept = "image/*";
@@ -91,8 +96,7 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
         onChangeRef.current(html);
       });
     })();
-    // 依存は空配列（=1度だけ）。StrictMode 下でも quillRef ガードで多重初期化を抑止
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- ★ここを [] にするのが肝
+  }, []); // 初期化は一度だけ
 
   // 外部から value が変わった時だけ（かつエディタが非フォーカス時）同期
   useEffect(() => {
