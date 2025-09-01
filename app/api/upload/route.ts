@@ -38,10 +38,13 @@ export async function POST(req: Request) {
     const f = bucket.file(path);
     await f.save(buffer, {
       resumable: false,
-      metadata: { contentType: (file as File).type },
+      metadata: { contentType: (file as File).type || 'application/octet-stream' },
     });
-    await f.makePublic();
-    const url = f.publicUrl();
+    // Uniform bucket-level access でも動くように署名URLを返す
+    const [url] = await f.getSignedUrl({
+      action: 'read',
+      expires: '2500-01-01',
+    });
     return NextResponse.json({ url, path });
   } catch (err) {
     console.error('UPLOAD ERROR', err);
