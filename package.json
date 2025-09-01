@@ -18,6 +18,7 @@
     "html-react-parser": "^5.2.6",
     "next": "15.3.1",
     "quill": "^2.0.0",
+    "react-quill": "^2.0.0",
     "quill-blot-formatter": "^1.0.5",
     "quill-delta-to-html": "^0.12.1",
     "react": "^19",
