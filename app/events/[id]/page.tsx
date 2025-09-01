@@ -226,7 +226,7 @@ export default function EventDetailPage() {
       {event.greetingDelta && (
         <div
           className="mb-4"
-          dangerouslySetInnerHTML={{ __html: deltaToHtml(event.greetingDelta) }}
+          dangerouslySetInnerHTML={{ __html: linkifyAndLineBreak(deltaToHtml(event.greetingDelta), { skipEscape: true }) }}
         />
       )}
       {event.venues && event.venues.length === 1 ? (
