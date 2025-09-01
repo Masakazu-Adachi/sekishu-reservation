@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import type { EventSummary, Seat } from "@/types";
 import LinkBackToHome from "@/components/LinkBackToHome";
+import { isUnsafeImageSrc } from "@/utils/url";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<EventSummary[]>([]);
@@ -98,15 +100,17 @@ export default function EventsPage() {
               </Link>
             </div>
             <div className="w-full md:w-1/3">
-              {event.coverImageUrl && (
-                <div className="relative w-full h-48 md:h-64 rounded overflow-hidden">
-                  <img
-                    src={event.coverImageUrl}
-                    alt={event.coverImageAlt || ""}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
+              {event.coverImageUrl &&
+                !isUnsafeImageSrc(event.coverImageUrl) && (
+                  <div className="relative w-full h-48 md:h-64 rounded overflow-hidden">
+                    <Image
+                      src={event.coverImageUrl}
+                      alt={event.coverImageAlt || ""}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
             </div>
           </div>
         ))}

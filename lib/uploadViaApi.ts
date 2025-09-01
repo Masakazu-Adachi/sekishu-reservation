@@ -9,9 +9,12 @@ export async function uploadViaApi(
   formData.append('file', file);
   formData.append('basePath', basePath);
   onProgress?.(0);
+  const token = process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN;
   const res = await fetch('/api/upload', {
     method: 'POST',
     body: formData,
+    headers: token ? { 'x-admin-upload-token': token } : undefined,
+    credentials: 'include',
   });
   if (!res.ok) {
     throw new Error('upload failed');

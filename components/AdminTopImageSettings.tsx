@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { uploadImageToStorage } from "@/lib/storageImages";
 import { validateImage } from "@/lib/validateImage";
+import { isUnsafeImageSrc } from "@/utils/url";
 
 export default function AdminTopImageSettings() {
   const [imageUrl, setImageUrl] = useState("");
@@ -98,13 +100,16 @@ export default function AdminTopImageSettings() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">トップページ画像設定</h1>
-      {(previewUrl || imageUrl) && (
-        <img
-          src={previewUrl || imageUrl}
-          alt="プレビュー"
-          className="w-full mb-4 rounded"
-        />
-      )}
+      {(previewUrl || imageUrl) &&
+        !isUnsafeImageSrc(previewUrl || imageUrl) && (
+          <Image
+            src={previewUrl || imageUrl}
+            alt="プレビュー"
+            width={800}
+            height={600}
+            className="w-full h-auto mb-4 rounded"
+          />
+        )}
       <div
         className="border-2 border-dashed p-4 text-center mb-4 cursor-pointer"
         onDragOver={(e) => e.preventDefault()}

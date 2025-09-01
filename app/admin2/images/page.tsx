@@ -12,6 +12,8 @@ import { collection, getDocs, query } from "firebase/firestore";
 import { getDownloadURL } from "firebase/storage";
 import { db } from "@/lib/firebase";
 import LinkBackToAdmin2Top from "@/components/LinkBackToAdmin2Top";
+import Image from "next/image";
+import { isUnsafeImageSrc } from "@/utils/url";
 
 interface ImageItem {
   path: string;
@@ -93,8 +95,15 @@ export default function ImagesAdmin() {
         <div className="grid md:grid-cols-3 gap-4">
           {filtered.map((f) => (
             <div key={f.path} className="rounded-xl p-3 shadow border">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={f.url} alt="" className="w-full h-auto rounded" />
+              {!isUnsafeImageSrc(f.url) && (
+                <Image
+                  src={f.url}
+                  alt=""
+                  width={400}
+                  height={300}
+                  className="w-full h-auto rounded"
+                />
+              )}
               <div className="text-sm mt-2 break-all">{f.path}</div>
               <div className="text-xs opacity-70">
                 {f.contentType} / {Math.round((f.size || 0) / 1024)} KB

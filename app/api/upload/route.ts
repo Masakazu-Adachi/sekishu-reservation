@@ -6,10 +6,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 async function isAuthorized() {
+  const envToken = process.env.ADMIN_UPLOAD_TOKEN?.trim();
+  if (!envToken) {
+    console.warn('ADMIN_UPLOAD_TOKEN is not set');
+    return false;
+  }
   const cookieToken = (await cookies()).get('admin_upload_token')?.value?.trim();
   const headerToken = (await nextHeaders()).get('x-admin-upload-token')?.trim();
-  const envToken = process.env.ADMIN_UPLOAD_TOKEN?.trim();
-  return !!envToken && (cookieToken === envToken || headerToken === envToken);
+  return cookieToken === envToken || headerToken === envToken;
 }
 
 export async function POST(req: Request) {
