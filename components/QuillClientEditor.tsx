@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import type Quill from "quill";
-import type { Delta } from "quill";
+import type { Delta, RangeStatic } from "quill";
 
 export interface QuillClientHandle {
   getEditor: () => Quill | null;
@@ -22,6 +22,7 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
 ) {
     const containerRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<Quill | null>(null);
+    const selectionRef = useRef<RangeStatic | null>(null);
 
     useImperativeHandle(
       ref,
@@ -35,6 +36,19 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
       let quill: Quill | null = null;
       let mounted = true;
       const handleChange = (delta: Delta, _old: Delta, source: string) => {
+        if (source === "user") {
+          const text = quill!.getText();
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+          let match: RegExpExecArray | null;
+          while ((match = urlRegex.exec(text)) !== null) {
+            const start = match.index;
+            const length = match[0].length;
+            const formats = quill!.getFormat(start, length);
+            if (!formats.link) {
+              quill!.formatText(start, length, "link", match[0]);
+            }
+          }
+        }
         onChange?.(quill!.root.innerHTML, delta, source, quill!);
       };
       (async () => {
@@ -54,12 +68,17 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
           }
         }
         quill.on("text-change", handleChange);
+        const handleSelectionChange = (range: RangeStatic | null) => {
+          selectionRef.current = range;
+        };
+        quill.on("selection-change", handleSelectionChange);
         if (mounted) editorRef.current = quill;
       })();
       return () => {
         mounted = false;
         if (quill) {
           quill.off("text-change", handleChange);
+          quill.off("selection-change", handleSelectionChange);
           editorRef.current = null;
           quill = null;
         }
@@ -70,10 +89,12 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
     useEffect(() => {
       const quill = editorRef.current;
       if (!quill) return;
-      const currentRange = quill.getSelection();
+      const currentRange = selectionRef.current;
       if (!value) {
-        quill.setContents([] as unknown as Delta);
-        if (currentRange) quill.setSelection(currentRange);
+        if (quill.getLength() > 1) {
+          quill.setContents([] as unknown as Delta);
+          if (currentRange) quill.setSelection(currentRange);
+        }
         return;
       }
       if (typeof value === "string") {

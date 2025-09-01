@@ -158,6 +158,8 @@ export default function EditEventPage() {
     if (!validateImage(file)) return;
     setCoverFile(file);
     const preview = URL.createObjectURL(file);
+    const prevUrl = form.coverImageUrl;
+    const prevPath = form.coverImagePath;
     setForm({ ...form, coverImageUrl: preview });
     if (eventId !== "new") {
       setUploading(true);
@@ -183,6 +185,8 @@ export default function EditEventPage() {
         setCoverFile(null);
       } catch {
         alert("画像のアップロードに失敗しました");
+        setForm((prev) => ({ ...prev, coverImageUrl: prevUrl, coverImagePath: prevPath }));
+        setCoverFile(null);
       } finally {
         setUploading(false);
       }
@@ -318,8 +322,12 @@ export default function EditEventPage() {
             coverImagePath: path,
             coverImageAlt: form.coverImageAlt || "",
           });
+          setForm((prev) => ({ ...prev, coverImageUrl: url, coverImagePath: path }));
+          setCoverFile(null);
         } catch {
           alert("画像のアップロードに失敗しました");
+          setForm((prev) => ({ ...prev, coverImageUrl: "", coverImagePath: "" }));
+          setCoverFile(null);
         } finally {
           setUploading(false);
         }
