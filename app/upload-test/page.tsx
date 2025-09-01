@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Image from 'next/image';
 import { isUnsafeImageSrc } from '@/utils/url';
 
@@ -9,6 +9,10 @@ export default function UploadTestPage() {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [uploading, setUploading] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetch('/api/admin/session', { method: 'POST' }).catch(() => {});
+  }, []);
 
   const handleUpload = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -20,11 +24,9 @@ export default function UploadTestPage() {
     formData.append('file', file);
 
     try {
-      const token = process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN;
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
-        headers: token ? { 'x-admin-upload-token': token } : undefined,
         credentials: 'include',
       });
       const data = await res.json();
