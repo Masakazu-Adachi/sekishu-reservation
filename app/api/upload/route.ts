@@ -6,10 +6,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 async function isAuthorized() {
+  // アップロード認可を無効化できるフラグ
+  const disabled = process.env.DISABLE_UPLOAD_AUTH === '1';
+  if (disabled) return true;
+
   const envToken = process.env.ADMIN_UPLOAD_TOKEN?.trim();
   if (!envToken) {
     console.warn('ADMIN_UPLOAD_TOKEN is not set');
-    return false;
+    return false; // フラグ無効時は従来どおり拒否
   }
   const cookieToken = (await cookies()).get('admin_upload_token')?.value?.trim();
   return cookieToken === envToken;
