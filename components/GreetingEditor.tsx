@@ -1,8 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useMemo, useRef } from "react";
+import "react-quill/dist/quill.snow.css";
 import { uploadImage } from "@/lib/uploadImage";
-import type ReactQuillType from "react-quill";
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 type Props = {
@@ -12,7 +12,8 @@ type Props = {
 };
 
 export default function GreetingEditor({ value, onChange, eventId }: Props) {
-  const quillRef = useRef<ReactQuillType | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const quillRef = useRef<any>(null);
 
   const modules = useMemo(
     () => ({
@@ -37,8 +38,7 @@ export default function GreetingEditor({ value, onChange, eventId }: Props) {
               const path = `images/events/${eventId}/greeting/${ts}_${safe}`;
               try {
                 const url = await uploadImage(file, path);
-                const editor = quillRef.current?.getEditor();
-                if (!editor) return;
+                const editor = quillRef.current?.getEditor?.();
                 const range = editor.getSelection(true);
                 editor.insertEmbed(range.index, "image", url, "user");
                 editor.setSelection(range.index + 1, 0);
