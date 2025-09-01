@@ -17,10 +17,11 @@ import { nanoid } from "nanoid";
 import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 import type { Event, Seat } from "@/types";
-import { deltaToHtml } from "@/lib/quillDelta";
 import { linkifyAndLineBreak } from "@/lib/text";
 import { isUnsafeImageSrc, stripBlobImages } from "@/utils/url";
 
+const firstImg = (html: string) =>
+  html.match(/<img[^>]+src="([^\"]+)"/i)?.[1] || null;
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -42,7 +43,7 @@ export default function EventDetailPage() {
       if (snapshot.exists()) {
         const data = snapshot.data();
         const venues = data.venues || (data.venue ? [data.venue] : []);
-        setEvent({ id: snapshot.id, ...data, venues } as Event);
+        setEvent({ id: snapshot.id, ...data, venues, greeting: data.greeting || "" } as Event);
       }
     };
     fetchEvent();
@@ -215,22 +216,25 @@ export default function EventDetailPage() {
 
   return (
     <main className="p-6 max-w-xl mx-auto font-serif">
-      {event.coverImageUrl && !isUnsafeImageSrc(event.coverImageUrl) && (
-        <div className="mb-4">
-          <Image
-            src={event.coverImageUrl}
-            alt={event.coverImageAlt || ""}
-            width={800}
-            height={600}
-            className="w-full h-auto rounded"
-          />
-        </div>
-      )}
+      {(() => {
+        const cover = firstImg(event.greeting || "");
+        return cover && !isUnsafeImageSrc(cover) ? (
+          <div className="mb-4">
+            <Image
+              src={cover}
+              alt=""
+              width={800}
+              height={600}
+              className="w-full h-auto rounded"
+            />
+          </div>
+        ) : null;
+      })()}
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
-      {event.greetingDelta && (
+      {event.greeting && (
         <div
           className="greeting-content mb-4"
-          dangerouslySetInnerHTML={{ __html: stripBlobImages(deltaToHtml(event.greetingDelta)) }}
+          dangerouslySetInnerHTML={{ __html: stripBlobImages(event.greeting) }}
         />
       )}
       {event.venues && event.venues.length === 1 ? (

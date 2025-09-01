@@ -13,18 +13,12 @@ export interface Event {
   venue?: string;
   /** 複数会場 */
   venues?: string[] | null;
-  /** ごあいさつの Quill Delta */
-  greetingDelta?: { ops: unknown[] } | null;
+  /** ごあいさつの HTML */
+  greeting?: string | null;
   date: Timestamp;
   description?: string;
   cost?: number;
   seats?: Seat[];
-  /** カード用の画像 URL */
-  coverImageUrl?: string;
-  /** Storage 内のパス */
-  coverImagePath?: string;
-  /** カード画像の代替テキスト */
-  coverImageAlt?: string;
 }
 
 export interface EventSummary {
@@ -37,8 +31,8 @@ export interface EventSummary {
   description?: string;
   participants?: number;
   capacity?: number;
-  coverImageUrl?: string;
-  coverImageAlt?: string;
+  /** greeting 内の先頭画像 URL */
+  thumbnailUrl?: string;
 }
 
 export interface Reservation {

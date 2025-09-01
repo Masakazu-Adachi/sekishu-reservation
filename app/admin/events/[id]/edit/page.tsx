@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import NextImage from "next/image";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import {
@@ -14,18 +13,11 @@ import {
   query,
   where,
   writeBatch,
-  addDoc,
+  setDoc,
+  deleteField,
 } from "firebase/firestore";
-import { deleteImage } from "@/lib/storageImages";
-import { uploadViaApi } from "@/lib/uploadViaApi";
-import { validateImage } from "@/lib/validateImage";
-import { isUnsafeImageSrc } from "@/utils/url";
-import Delta from "quill-delta";
-import type { Delta as DeltaType } from "quill";
-
 import type { Seat } from "@/types";
-import QuillClientEditor, { QuillClientHandle } from "@/components/QuillClientEditor";
-
+import GreetingEditor from "@/components/GreetingEditor";
 
 const hourOptions = Array.from({ length: 24 }, (_, i) =>
   String(i).padStart(2, "0")
@@ -36,33 +28,6 @@ const TENTATIVE_LABEL = "仮予約";
 const capacityOptions = Array.from({ length: 200 }, (_, i) => i + 1);
 const costOptions = Array.from({ length: 101 }, (_, i) => i * 100);
 
-async function downscaleIfNeeded(file: File): Promise<Blob | File> {
-  return await new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      if (img.width <= 2000) {
-        resolve(file);
-        return;
-      }
-      const canvas = document.createElement("canvas");
-      const scale = 2000 / img.width;
-      canvas.width = 2000;
-      canvas.height = img.height * scale;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(file);
-        return;
-      }
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => {
-        resolve(blob || file);
-      }, "image/jpeg", 0.85);
-    };
-    img.src = URL.createObjectURL(file);
-  });
-}
-
-
 interface EventForm {
   title: string;
   venues: string[];
@@ -70,15 +35,18 @@ interface EventForm {
   cost: number;
   description: string;
   seats: Seat[];
-  coverImageUrl: string;
-  coverImagePath: string;
-  coverImageAlt: string;
-  greetingDelta: DeltaType;
+  greeting: string;
 }
 
 export default function EditEventPage() {
   const params = useParams();
-  const eventId = params.id as string;
+  const paramId = params.id as string;
+  const eventIdRef = useRef<string>("");
+  if (!eventIdRef.current) {
+    eventIdRef.current =
+      paramId === "new" ? doc(collection(db, "events")).id : paramId;
+  }
+  const eventId = eventIdRef.current;
 
   const [form, setForm] = useState<EventForm>({
     title: "",
@@ -87,18 +55,12 @@ export default function EditEventPage() {
     cost: 0,
     description: "",
     seats: [],
-    coverImageUrl: "",
-    coverImagePath: "",
-    coverImageAlt: "",
-    greetingDelta: new Delta() as DeltaType,
+    greeting: "",
   });
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
-    if (eventId === "new") return;
+    if (paramId === "new") return;
     const fetchEvent = async () => {
       const docRef = doc(db, "events", eventId);
       const snapshot = await getDoc(docRef);
@@ -111,17 +73,12 @@ export default function EditEventPage() {
           cost: data.cost,
           description: data.description,
           seats: data.seats || [],
-          coverImageUrl: data.coverImageUrl || "",
-          coverImagePath: data.coverImagePath || "",
-          coverImageAlt: data.coverImageAlt || "",
-          greetingDelta: data.greetingDelta
-            ? (new Delta(data.greetingDelta) as DeltaType)
-            : (new Delta() as DeltaType),
+          greeting: data.greeting || "",
         });
       }
     };
     fetchEvent();
-  }, [eventId]);
+  }, [paramId, eventId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -152,74 +109,6 @@ export default function EditEventPage() {
     }
   };
 
-  const handleCoverImageChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (!e.target.files || !e.target.files[0]) return;
-    const file = e.target.files[0];
-    if (!validateImage(file)) return;
-    setCoverFile(file);
-    const preview = URL.createObjectURL(file);
-    const prevUrl = form.coverImageUrl;
-    const prevPath = form.coverImagePath;
-    setForm({ ...form, coverImageUrl: preview });
-    if (eventId !== "new") {
-      setUploading(true);
-      const blob = await downscaleIfNeeded(file);
-      try {
-        const { url, path } = await uploadViaApi(blob, `events/${eventId}`, setUploadProgress);
-        await updateDoc(doc(db, "events", eventId), {
-          coverImageUrl: url,
-          coverImagePath: path,
-        });
-        if (form.coverImagePath) {
-          try {
-            await deleteImage(form.coverImagePath);
-          } catch {
-            alert("旧画像の削除に失敗しました");
-          }
-        }
-        setForm((prev) => ({
-          ...prev,
-          coverImageUrl: url,
-          coverImagePath: path,
-        }));
-        setCoverFile(null);
-      } catch {
-        alert("画像のアップロードに失敗しました");
-        setForm((prev) => ({ ...prev, coverImageUrl: prevUrl, coverImagePath: prevPath }));
-        setCoverFile(null);
-      } finally {
-        setUploading(false);
-      }
-    }
-  };
-
-  const handleDeleteCoverImage = async () => {
-    if (eventId !== "new" && form.coverImagePath) {
-      setUploading(true);
-      try {
-        await deleteImage(form.coverImagePath);
-        await updateDoc(doc(db, "events", eventId), {
-          coverImageUrl: "",
-          coverImagePath: "",
-          coverImageAlt: "",
-        });
-      } catch {
-        alert("画像の削除に失敗しました");
-      } finally {
-        setUploading(false);
-      }
-    }
-    setForm((prev) => ({
-      ...prev,
-      coverImageUrl: "",
-      coverImagePath: "",
-      coverImageAlt: "",
-    }));
-    setCoverFile(null);
-  };
-
   const handleVenueInput = (index: number) => (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
@@ -240,31 +129,8 @@ export default function EditEventPage() {
     setForm({ ...form, venues: venues.length ? venues : [""] });
   };
 
-  const quillRef = useRef<QuillClientHandle | null>(null);
-  const quillModules = useMemo(
-    () => ({
-      toolbar: { container: [["bold", "italic", "underline"], [{ align: [] }], ["link"]] },
-      clipboard: { matchVisual: false },
-    }),
-    []
-  );
-  const quillFormats = useMemo(
-    () => ["bold", "italic", "underline", "align", "link"],
-    []
-  );
-  const greetingTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  const handleGreetingChange = (
-    _value: string,
-    _delta: DeltaType,
-    _source: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    editor: any
-  ) => {
-    if (greetingTimeout.current) clearTimeout(greetingTimeout.current);
-    greetingTimeout.current = setTimeout(() => {
-      setForm((prev) => ({ ...prev, greetingDelta: editor.getContents() }));
-    }, 500);
+  const handleGreetingChange = (html: string) => {
+    setForm((prev) => ({ ...prev, greeting: html }));
   };
 
   const sortSeats = (seats: Seat[]) =>
@@ -292,16 +158,12 @@ export default function EditEventPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploading) return;
 
     const venues = form.venues.map((v) => v.trim()).filter((v) => v);
     const baseData = {
       title: form.title,
       venues: venues.length ? venues : null,
-      greetingDelta:
-        form.greetingDelta.ops && form.greetingDelta.ops.length
-          ? { ops: form.greetingDelta.ops }
-          : null,
+      greeting: form.greeting || "",
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
       description: form.description,
@@ -312,38 +174,16 @@ export default function EditEventPage() {
       })),
     };
 
-    if (eventId === "new") {
-      const docRef = await addDoc(collection(db, "events"), baseData);
-      if (coverFile) {
-        setUploading(true);
-        const blob = await downscaleIfNeeded(coverFile);
-        try {
-          const { url, path } = await uploadViaApi(blob, `events/${docRef.id}`, setUploadProgress);
-          await updateDoc(docRef, {
-            coverImageUrl: url,
-            coverImagePath: path,
-            coverImageAlt: form.coverImageAlt || "",
-          });
-          setForm((prev) => ({ ...prev, coverImageUrl: url, coverImagePath: path }));
-          setCoverFile(null);
-        } catch {
-          alert("画像のアップロードに失敗しました");
-          setForm((prev) => ({ ...prev, coverImageUrl: "", coverImagePath: "" }));
-          setCoverFile(null);
-        } finally {
-          setUploading(false);
-        }
-      } else if (form.coverImageAlt) {
-        await updateDoc(docRef, { coverImageAlt: form.coverImageAlt });
-      }
+    if (paramId === "new") {
+      await setDoc(doc(db, "events", eventId), baseData);
       alert("新しいイベントを作成しました");
     } else {
       const docRef = doc(db, "events", eventId);
       await updateDoc(docRef, {
         ...baseData,
-        coverImageUrl: form.coverImageUrl || "",
-        coverImagePath: form.coverImagePath || "",
-        coverImageAlt: form.coverImageAlt || "",
+        coverImageUrl: deleteField(),
+        coverImagePath: deleteField(),
+        coverImageAlt: deleteField(),
       });
       alert("イベントを更新しました");
     }
@@ -387,12 +227,10 @@ export default function EditEventPage() {
         </div>
         <div>
           <label className="block mb-1">ごあいさつ</label>
-          <QuillClientEditor
-            ref={quillRef}
-            value={form.greetingDelta}
+          <GreetingEditor
+            value={form.greeting}
             onChange={handleGreetingChange}
-            modules={quillModules}
-            formats={quillFormats}
+            eventId={eventId}
           />
         </div>
         <div>
@@ -452,55 +290,6 @@ export default function EditEventPage() {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="block mb-1">カード画像</label>
-          {form.coverImageUrl && !isUnsafeImageSrc(form.coverImageUrl) && (
-            <NextImage
-              src={form.coverImageUrl}
-              alt={form.coverImageAlt || ""}
-              width={800}
-              height={600}
-              className="w-full h-auto mb-2 rounded border"
-            />
-          )}
-          {uploading && (
-            <div className="mb-2">
-              <div className="w-full bg-gray-200 rounded h-2">
-                <div
-                  className="bg-blue-500 h-2 rounded"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-              <p className="text-sm text-center">{uploadProgress}%</p>
-            </div>
-          )}
-          <div className="flex gap-2 items-center">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleCoverImageChange}
-              className="border p-2 flex-1"
-              disabled={uploading}
-            />
-            {form.coverImageUrl && (
-              <button
-                type="button"
-                onClick={handleDeleteCoverImage}
-                className="px-3 py-1 border rounded"
-                disabled={uploading}
-              >
-                画像を削除
-              </button>
-            )}
-          </div>
-          <input
-            type="text"
-            value={form.coverImageAlt}
-            onChange={(e) => setForm({ ...form, coverImageAlt: e.target.value })}
-            placeholder="Alt テキスト（任意）"
-            className="border p-2 w-full mt-2"
-          />
         </div>
         <div>
           <label className="block mb-1">備考</label>
@@ -594,19 +383,20 @@ export default function EditEventPage() {
 
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full disabled:opacity-50"
-          disabled={uploading}
+          className="bg-blue-600 text-white px-4 py-2 rounded w-full"
         >
           保存する
         </button>
 
-        <button
-          type="button"
-          onClick={handleDelete}
-          className="bg-red-500 text-white px-4 py-2 rounded w-full mt-2"
-        >
-          イベントを削除
-        </button>
+        {paramId !== "new" && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="bg-red-500 text-white px-4 py-2 rounded w-full mt-2"
+          >
+            イベントを削除
+          </button>
+        )}
       </form>
     </main>
   );

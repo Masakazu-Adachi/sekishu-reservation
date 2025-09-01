@@ -9,6 +9,9 @@ import type { EventSummary, Seat } from "@/types";
 import LinkBackToHome from "@/components/LinkBackToHome";
 import { isUnsafeImageSrc } from "@/utils/url";
 
+const firstImg = (html: string) =>
+  html.match(/<img[^>]+src="([^\"]+)"/i)?.[1] || null;
+
 export default function EventsPage() {
   const [events, setEvents] = useState<EventSummary[]>([]);
 
@@ -19,6 +22,7 @@ export default function EventsPage() {
         .map((doc) => {
           const d = doc.data();
           const venues = d.venues || (d.venue ? [d.venue] : []);
+          const greeting = d.greeting || "";
           return {
             id: doc.id,
             title: d.title,
@@ -35,8 +39,7 @@ export default function EventsPage() {
               (sum: number, seat) => sum + (seat.capacity || 0),
               0
             ),
-            coverImageUrl: d.coverImageUrl || "",
-            coverImageAlt: d.coverImageAlt || "",
+            thumbnailUrl: firstImg(greeting),
           };
         })
         .sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime())
@@ -56,8 +59,7 @@ export default function EventsPage() {
             description: ev.description,
             participants: ev.participants,
             capacity: ev.capacity,
-            coverImageUrl: ev.coverImageUrl,
-            coverImageAlt: ev.coverImageAlt,
+            thumbnailUrl: ev.thumbnailUrl,
           } as EventSummary;
         });
       setEvents(data);
@@ -100,12 +102,12 @@ export default function EventsPage() {
               </Link>
             </div>
             <div className="w-full md:w-1/3">
-              {event.coverImageUrl &&
-                !isUnsafeImageSrc(event.coverImageUrl) && (
+              {event.thumbnailUrl &&
+                !isUnsafeImageSrc(event.thumbnailUrl) && (
                   <div className="relative w-full h-48 md:h-64 rounded overflow-hidden">
                     <Image
-                      src={event.coverImageUrl}
-                      alt={event.coverImageAlt || ""}
+                      src={event.thumbnailUrl}
+                      alt=""
                       fill
                       className="object-cover"
                     />
