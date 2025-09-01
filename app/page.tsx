@@ -77,7 +77,7 @@ export default function HomePage() {
         )}
         {greetingHtml ? (
           <div
-            className="text-lg font-serif space-y-4"
+            className="text-lg font-serif space-y-4 [&_a]:text-blue-600 [&_a]:underline"
             dangerouslySetInnerHTML={{ __html: greetingHtml }}
           />
         ) : (

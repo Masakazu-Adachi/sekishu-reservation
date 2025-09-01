@@ -11,7 +11,7 @@ export default function AdminTopImageSettings() {
   const [alt, setAlt] = useState("");
   const [storagePath, setStoragePath] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -36,7 +36,10 @@ export default function AdminTopImageSettings() {
   const handleFileChange = (f: File) => {
     if (!validateImage(f)) return;
     setFile(f);
-    setPreview(URL.createObjectURL(f));
+    setPreviewUrl((p) => {
+      if (p) URL.revokeObjectURL(p);
+      return URL.createObjectURL(f);
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +52,12 @@ export default function AdminTopImageSettings() {
     const f = e.dataTransfer.files?.[0];
     if (f) handleFileChange(f);
   };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleSave = async () => {
     setUploading(true);
@@ -76,7 +85,7 @@ export default function AdminTopImageSettings() {
       setImageUrl(downloadUrl);
       setStoragePath(path);
       setFile(null);
-      setPreview("");
+      setPreviewUrl("");
       alert("保存しました");
     } catch (err) {
       console.error(err);
@@ -89,9 +98,9 @@ export default function AdminTopImageSettings() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">トップページ画像設定</h1>
-      {(preview || imageUrl) && (
+      {(previewUrl || imageUrl) && (
         <img
-          src={preview || imageUrl}
+          src={previewUrl || imageUrl}
           alt="プレビュー"
           className="w-full mb-4 rounded"
         />
