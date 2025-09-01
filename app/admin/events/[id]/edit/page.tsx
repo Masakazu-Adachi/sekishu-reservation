@@ -17,7 +17,7 @@ import {
   deleteField,
 } from "firebase/firestore";
 import type { Seat } from "@/types";
-import GreetingEditor from "@/components/GreetingEditor";
+import QuillLite from "@/components/QuillLite";
 
 const hourOptions = Array.from({ length: 24 }, (_, i) =>
   String(i).padStart(2, "0")
@@ -227,7 +227,7 @@ export default function EditEventPage() {
         </div>
         <div>
           <label className="block mb-1">ごあいさつ</label>
-          <GreetingEditor
+          <QuillLite
             value={form.greeting}
             onChange={handleGreetingChange}
             eventId={eventId}

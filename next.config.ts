@@ -19,7 +19,6 @@ const nextConfig: NextConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      "quill$": require.resolve("quill"),
     };
     if (!isServer) {
       config.resolve.alias["react-dom$"] = path.resolve(
