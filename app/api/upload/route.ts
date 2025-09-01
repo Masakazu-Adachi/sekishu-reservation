@@ -5,8 +5,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  const token = req.headers.get('x-admin-upload-token');
-  if (token !== process.env.ADMIN_UPLOAD_TOKEN) {
+  const headerToken = req.headers.get('x-admin-upload-token');
+  console.log('header=', headerToken, 'env=', process.env.ADMIN_UPLOAD_TOKEN);
+  if (headerToken?.trim() != process.env.ADMIN_UPLOAD_TOKEN?.trim()) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
