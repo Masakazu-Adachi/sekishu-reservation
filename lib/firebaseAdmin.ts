@@ -1,5 +1,6 @@
-import { getApps, initializeApp, cert, type App } from 'firebase-admin/app';
+import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
+import type { App } from 'firebase-admin/app';
 import type { Bucket } from '@google-cloud/storage';
 
 let _app: App | null = null;
@@ -17,3 +18,4 @@ export function getBucketSafely(): Bucket | null {
   }
   return getStorage(_app).bucket(bucketName);
 }
+
