@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import type Quill from "quill";
-import type { Delta, RangeStatic } from "quill";
+import type { Delta } from "quill";
+
+type RangeStatic = { index: number; length: number } | null;
 
 export interface QuillClientHandle {
   getEditor: () => Quill | null;
@@ -22,7 +24,7 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
 ) {
     const containerRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<Quill | null>(null);
-    const selectionRef = useRef<RangeStatic | null>(null);
+    const selectionRef = useRef<RangeStatic>(null);
 
     useImperativeHandle(
       ref,
@@ -51,6 +53,9 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
         }
         onChange?.(quill!.root.innerHTML, delta, source, quill!);
       };
+      const handleSelectionChange = (range: RangeStatic) => {
+        selectionRef.current = range;
+      };
       (async () => {
         const QuillMod = await import("quill");
         const QuillCtor = QuillMod.default as unknown as typeof Quill;
@@ -68,9 +73,6 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
           }
         }
         quill.on("text-change", handleChange);
-        const handleSelectionChange = (range: RangeStatic | null) => {
-          selectionRef.current = range;
-        };
         quill.on("selection-change", handleSelectionChange);
         if (mounted) editorRef.current = quill;
       })();
