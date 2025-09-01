@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { INK_BUTTON } from "@/components/ui/buttonStyles";
+import { isUnsafeImageSrc, stripBlobImages } from "@/utils/url";
 
 export default function HomePage() {
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
@@ -51,11 +53,14 @@ export default function HomePage() {
     <main>
       {/* トップページセクション */}
       <section className="relative min-h-[500px] sm:min-h-[600px]">
-        <img
-          src={topImageUrl}
-          alt={heroImageAlt}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        {!isUnsafeImageSrc(topImageUrl) && (
+          <Image
+            src={topImageUrl}
+            alt={heroImageAlt}
+            fill
+            className="object-cover"
+          />
+        )}
         <div className="relative z-10 text-white flex flex-col justify-center items-center px-4 min-h-[500px] sm:min-h-[600px]">
           <h1 className="text-5xl sm:text-6xl font-bold mb-4 drop-shadow-md font-serif">
             石州流野村派
@@ -68,17 +73,19 @@ export default function HomePage() {
 
       {/* ごあいさつセクション */}
       <section className="py-8 max-w-5xl mx-auto px-4">
-        {greetingImageUrl && (
-          <img
+        {greetingImageUrl && !isUnsafeImageSrc(greetingImageUrl) && (
+          <Image
             src={greetingImageUrl}
             alt="ごあいさつ"
-            className="w-full mb-4 rounded"
+            width={800}
+            height={600}
+            className="w-full h-auto mb-4 rounded"
           />
         )}
         {greetingHtml ? (
           <div
             className="text-lg font-serif space-y-4 [&_a]:text-blue-600 [&_a]:underline"
-            dangerouslySetInnerHTML={{ __html: greetingHtml }}
+            dangerouslySetInnerHTML={{ __html: stripBlobImages(greetingHtml) }}
           />
         ) : (
           paragraphs.map((text, idx) => (

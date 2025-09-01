@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import type { BlogPost } from "@/types";
 import LinkBackToHome from "@/components/LinkBackToHome";
 import { deltaToHtml } from "@/lib/quillDelta";
 import RichHtml from "@/components/RichHtml";
+import { isUnsafeImageSrc } from "@/utils/url";
 
 export default function PastPostDetailPage() {
   const { id } = useParams();
@@ -47,12 +49,13 @@ export default function PastPostDetailPage() {
   return (
     <main className="p-6 max-w-3xl mx-auto font-serif">
       <LinkBackToHome />
-      {post.imageUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+      {post.imageUrl && !isUnsafeImageSrc(post.imageUrl) && (
+        <Image
           src={post.imageUrl}
           alt={post.title}
-          className="w-full rounded mb-4"
+          width={800}
+          height={600}
+          className="w-full h-auto rounded mb-4"
         />
       )}
       <h1 className="text-3xl font-bold mb-4 font-serif">{post.title}</h1>

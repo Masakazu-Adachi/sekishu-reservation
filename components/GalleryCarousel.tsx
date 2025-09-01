@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
+import Image from "next/image";
+import { isUnsafeImageSrc } from "@/utils/url";
 
 interface ImageItem {
   src: string;
@@ -50,22 +52,26 @@ export default function GalleryCarousel({ images, autoPlayMs = 4000 }: Props) {
   if (images.length <= 1 || failed) {
     return (
       <div className="space-y-4 max-w-screen-md">
-        {images.map((img, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
-            src={img.src}
-            alt={img.alt ?? ""}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-[240px] sm:h-[360px] object-cover rounded-2xl shadow ring-1 ring-black/5"
-            onError={e => {
-              e.currentTarget.src =
-                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-              e.currentTarget.alt = "読み込めませんでした";
-            }}
-          />
-        ))}
+        {images.map((img, i) =>
+          isUnsafeImageSrc(img.src) ? null : (
+            <div
+              key={i}
+              className="relative w-full h-[240px] sm:h-[360px] rounded-2xl shadow ring-1 ring-black/5 overflow-hidden"
+            >
+              <Image
+                src={img.src}
+                alt={img.alt ?? ""}
+                fill
+                className="object-cover"
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+                  e.currentTarget.alt = "読み込めませんでした";
+                }}
+              />
+            </div>
+          )
+        )}
       </div>
     );
   }
@@ -78,19 +84,21 @@ export default function GalleryCarousel({ images, autoPlayMs = 4000 }: Props) {
         <div className="flex">
           {images.map((img, i) => (
             <div className="flex-[0_0_100%]" key={i}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.src}
-                alt={img.alt ?? ""}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-[240px] sm:h-[360px] object-cover"
-                onError={e => {
-                  e.currentTarget.src =
-                    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-                  e.currentTarget.alt = "読み込めませんでした";
-                }}
-              />
+              {isUnsafeImageSrc(img.src) ? null : (
+                <div className="relative w-full h-[240px] sm:h-[360px]">
+                  <Image
+                    src={img.src}
+                    alt={img.alt ?? ""}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src =
+                        "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+                      e.currentTarget.alt = "読み込めませんでした";
+                    }}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>

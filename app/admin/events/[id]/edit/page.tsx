@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
+import NextImage from "next/image";
 import { useRouter, useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import {
@@ -18,6 +19,7 @@ import {
 import { deleteImage } from "@/lib/storageImages";
 import { uploadViaApi } from "@/lib/uploadViaApi";
 import { validateImage } from "@/lib/validateImage";
+import { isUnsafeImageSrc } from "@/utils/url";
 import Delta from "quill-delta";
 import type { Delta as DeltaType } from "quill";
 
@@ -453,11 +455,13 @@ export default function EditEventPage() {
         </div>
         <div>
           <label className="block mb-1">カード画像</label>
-          {form.coverImageUrl && (
-            <img
+          {form.coverImageUrl && !isUnsafeImageSrc(form.coverImageUrl) && (
+            <NextImage
               src={form.coverImageUrl}
               alt={form.coverImageAlt || ""}
-              className="w-full mb-2 rounded border"
+              width={800}
+              height={600}
+              className="w-full h-auto mb-2 rounded border"
             />
           )}
           {uploading && (

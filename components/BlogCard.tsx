@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { BlogPost } from "@/types";
 import { deltaToPlainText } from "@/lib/quillDelta";
+import { isUnsafeImageSrc } from "@/utils/url";
 
 interface Props {
   post: BlogPost;
@@ -40,13 +42,13 @@ export default function BlogCard({ post, href }: Props) {
       href={href}
       className="block rounded-lg overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow"
     >
-      {post.imageUrl && (
-        <div className="h-48 w-full overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+      {post.imageUrl && !isUnsafeImageSrc(post.imageUrl) && (
+        <div className="h-48 w-full overflow-hidden relative">
+          <Image
             src={post.imageUrl}
             alt={post.title}
-            className="object-cover w-full h-full"
+            fill
+            className="object-cover"
           />
         </div>
       )}

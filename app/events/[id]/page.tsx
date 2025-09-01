@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -18,6 +19,7 @@ import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 import type { Event, Seat } from "@/types";
 import { deltaToHtml } from "@/lib/quillDelta";
 import { linkifyAndLineBreak } from "@/lib/text";
+import { isUnsafeImageSrc, stripBlobImages } from "@/utils/url";
 
 
 export default function EventDetailPage() {
@@ -213,12 +215,14 @@ export default function EventDetailPage() {
 
   return (
     <main className="p-6 max-w-xl mx-auto font-serif">
-      {event.coverImageUrl && (
+      {event.coverImageUrl && !isUnsafeImageSrc(event.coverImageUrl) && (
         <div className="mb-4">
-          <img
+          <Image
             src={event.coverImageUrl}
             alt={event.coverImageAlt || ""}
-            className="w-full rounded"
+            width={800}
+            height={600}
+            className="w-full h-auto rounded"
           />
         </div>
       )}
@@ -226,19 +230,19 @@ export default function EventDetailPage() {
       {event.greetingDelta && (
         <div
           className="greeting-content mb-4"
-          dangerouslySetInnerHTML={{ __html: deltaToHtml(event.greetingDelta) }}
+          dangerouslySetInnerHTML={{ __html: stripBlobImages(deltaToHtml(event.greetingDelta)) }}
         />
       )}
       {event.venues && event.venues.length === 1 ? (
         <p>
-          会場: <span dangerouslySetInnerHTML={{ __html: linkifyAndLineBreak(event.venues[0]) }} />
+          会場: <span dangerouslySetInnerHTML={{ __html: stripBlobImages(linkifyAndLineBreak(event.venues[0])) }} />
         </p>
       ) : event.venues && event.venues.length > 1 ? (
         <div className="mb-2">
           <p>会場:</p>
           <ul className="list-disc pl-5">
             {event.venues.map((v, i) => (
-              <li key={i} dangerouslySetInnerHTML={{ __html: linkifyAndLineBreak(v) }} />
+              <li key={i} dangerouslySetInnerHTML={{ __html: stripBlobImages(linkifyAndLineBreak(v)) }} />
             ))}
           </ul>
         </div>

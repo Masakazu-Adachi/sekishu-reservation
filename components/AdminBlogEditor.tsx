@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import Image from "next/image";
 import QuillClientEditor, { QuillClientHandle } from "@/components/QuillClientEditor";
 import type Quill from "quill";
 import type { DeltaOperation } from "quill/core";
@@ -21,6 +22,7 @@ import { uploadImage } from "@/lib/uploadImage";
 import { uploadImageToStorage } from "@/lib/storageImages";
 import type { BlogPost } from "@/types";
 import { deltaToHtml } from "@/lib/quillDelta";
+import { isUnsafeImageSrc, stripBlobImages } from "@/utils/url";
 
 interface Props {
   collectionName: string;
@@ -660,13 +662,22 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
                 </button>
               </div>
             </div>
-            {post.imageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.imageUrl} alt="" className="mb-2 w-full rounded" />
+            {post.imageUrl && !isUnsafeImageSrc(post.imageUrl) && (
+              <Image
+                src={post.imageUrl}
+                alt=""
+                width={800}
+                height={600}
+                className="mb-2 w-full h-auto rounded"
+              />
             )}
             <div
               className="text-sm"
-              dangerouslySetInnerHTML={{ __html: post.bodyDelta ? deltaToHtml(post.bodyDelta) : post.body || "" }}
+              dangerouslySetInnerHTML={{
+                __html: stripBlobImages(
+                  post.bodyDelta ? deltaToHtml(post.bodyDelta) : post.body || ""
+                ),
+              }}
             />
           </div>
         ))}

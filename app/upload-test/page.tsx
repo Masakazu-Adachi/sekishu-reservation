@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import Image from 'next/image';
+import { isUnsafeImageSrc } from '@/utils/url';
 
 export default function UploadTestPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -18,9 +20,12 @@ export default function UploadTestPage() {
     formData.append('file', file);
 
     try {
+      const token = process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN;
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+        headers: token ? { 'x-admin-upload-token': token } : undefined,
+        credentials: 'include',
       });
       const data = await res.json();
       if (res.ok && data.url) {
@@ -57,10 +62,16 @@ export default function UploadTestPage() {
         </button>
       </form>
       {error && <p className="text-red-500">{error}</p>}
-      {imageUrl && (
+      {imageUrl && !isUnsafeImageSrc(imageUrl) && (
         <div>
           <p>アップロードされた画像:</p>
-          <img src={imageUrl} alt="uploaded" className="mt-2 max-w-xs" />
+          <Image
+            src={imageUrl}
+            alt="uploaded"
+            width={320}
+            height={320}
+            className="mt-2 max-w-xs h-auto"
+          />
         </div>
       )}
     </div>
