@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 async function isAuthorized() {
   // アップロード認可を無効化できるフラグ
-  const disabled = process.env.DISABLE_UPLOAD_AUTH === '1';
+  const disabled = (process.env.DISABLE_UPLOAD_AUTH ?? '1') === '1';
   if (disabled) return true;
 
   const envToken = process.env.ADMIN_UPLOAD_TOKEN?.trim();

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  const disabled = process.env.DISABLE_UPLOAD_AUTH === "1";
+  const disabled = (process.env.DISABLE_UPLOAD_AUTH ?? "1") === "1";
   const envToken = process.env.ADMIN_UPLOAD_TOKEN?.trim();
 
   // 認可無効フラグONの場合はクッキー不要
