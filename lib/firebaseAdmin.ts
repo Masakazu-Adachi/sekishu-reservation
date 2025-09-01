@@ -1,17 +1,19 @@
-import { getApps, initializeApp, cert } from 'firebase-admin/app';
+import { getApps, initializeApp, cert, type App } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
+import type { Bucket } from '@google-cloud/storage';
 
-if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-  throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY is not set');
+let _app: App | null = null;
+
+export function getBucketSafely(): Bucket | null {
+  const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!key || !bucketName) return null;
+
+  if (!_app) {
+    _app = getApps()[0] ?? initializeApp({
+      credential: cert(JSON.parse(key)),
+      storageBucket: bucketName,
+    });
+  }
+  return getStorage(_app).bucket(bucketName);
 }
-if (!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
-  throw new Error('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET is not set');
-}
-
-const app = getApps()[0] ?? initializeApp({
-  credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string)),
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-});
-
-export const storage = getStorage(app);
-export const bucket = storage.bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);

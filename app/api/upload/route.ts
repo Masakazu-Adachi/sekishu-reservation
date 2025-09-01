@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { bucket } from '@/lib/firebaseAdmin';
+import { getBucketSafely } from '@/lib/firebaseAdmin';
 import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
@@ -24,16 +24,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const formData = await req.formData();
-    const file = formData.get('file');
-    const basePath = formData.get('basePath')?.toString();
-    if (!file || typeof file === 'string' || !basePath) {
-      return NextResponse.json({ error: 'ファイルが選択されていません' }, { status: 400 });
+    const bucket = getBucketSafely();
+    if (!bucket) {
+      return NextResponse.json(
+        { error: 'Server not configured (Firebase key/bucket missing)' },
+        { status: 500 },
+      );
     }
-    const arrayBuffer = await (file as Blob).arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const filename = (file as File).name || 'file';
-    const uniqueName = `${Date.now()}-${filename}`;
+    const form = await req.formData();
+    const file = form.get('file') as File | null;
+    const basePath = String(form.get('basePath') || '').trim();
+    if (!file || !file.size) {
+      return NextResponse.json({ error: 'No file' }, { status: 400 });
+    }
+    if (!basePath) {
+      return NextResponse.json({ error: 'No basePath' }, { status: 400 });
+    }
+    const arrayBuf = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuf);
+    const ext = ((file.name.split('.').pop() || 'bin').toLowerCase()).slice(0, 10);
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const path = `images/${basePath}/${uniqueName}`;
     const f = bucket.file(path);
     await f.save(buffer, {
