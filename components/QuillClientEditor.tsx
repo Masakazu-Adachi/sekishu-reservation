@@ -70,16 +70,23 @@ const QuillClientEditor = forwardRef<QuillClientHandle, Props>(function QuillCli
     useEffect(() => {
       const quill = editorRef.current;
       if (!quill) return;
+      const currentRange = quill.getSelection();
       if (!value) {
         quill.setContents([] as unknown as Delta);
+        if (currentRange) quill.setSelection(currentRange);
         return;
       }
       if (typeof value === "string") {
         if (quill.root.innerHTML !== value) {
           quill.clipboard.dangerouslyPasteHTML(value);
+          if (currentRange) quill.setSelection(currentRange);
         }
       } else {
-        quill.setContents(value as Delta);
+        const current = quill.getContents();
+        if (JSON.stringify(current.ops) !== JSON.stringify((value as Delta).ops)) {
+          quill.setContents(value as Delta);
+          if (currentRange) quill.setSelection(currentRange);
+        }
       }
     }, [value]);
 

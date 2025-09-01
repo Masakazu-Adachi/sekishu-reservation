@@ -15,7 +15,8 @@ import {
   writeBatch,
   addDoc,
 } from "firebase/firestore";
-import { uploadImageToStorage, deleteImage } from "@/lib/storageImages";
+import { deleteImage } from "@/lib/storageImages";
+import { uploadViaApi } from "@/lib/uploadViaApi";
 import { validateImage } from "@/lib/validateImage";
 import Delta from "quill-delta";
 import type { Delta as DeltaType } from "quill";
@@ -162,11 +163,7 @@ export default function EditEventPage() {
       setUploading(true);
       const blob = await downscaleIfNeeded(file);
       try {
-        const { url, path } = await uploadImageToStorage(blob, `events/${eventId}`, {
-          uploadedBy: "admin",
-          eventId,
-          onProgress: setUploadProgress,
-        });
+        const { url, path } = await uploadViaApi(blob, `events/${eventId}`, setUploadProgress);
         await updateDoc(doc(db, "events", eventId), {
           coverImageUrl: url,
           coverImagePath: path,
@@ -315,11 +312,7 @@ export default function EditEventPage() {
         setUploading(true);
         const blob = await downscaleIfNeeded(coverFile);
         try {
-          const { url, path } = await uploadImageToStorage(blob, `events/${docRef.id}`, {
-            uploadedBy: "admin",
-            eventId: docRef.id,
-            onProgress: setUploadProgress,
-          });
+          const { url, path } = await uploadViaApi(blob, `events/${docRef.id}`, setUploadProgress);
           await updateDoc(docRef, {
             coverImageUrl: url,
             coverImagePath: path,

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { INK_BUTTON } from "@/components/ui/buttonStyles";
+import { linkifyAndLineBreak } from "@/lib/text";
 
 export default function HomePage() {
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
@@ -78,7 +79,7 @@ export default function HomePage() {
         {greetingHtml ? (
           <div
             className="text-lg font-serif space-y-4"
-            dangerouslySetInnerHTML={{ __html: greetingHtml }}
+            dangerouslySetInnerHTML={{ __html: linkifyAndLineBreak(greetingHtml, { skipEscape: true }) }}
           />
         ) : (
           paragraphs.map((text, idx) => (
