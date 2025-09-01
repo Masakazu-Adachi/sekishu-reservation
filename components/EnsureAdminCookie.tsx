@@ -8,12 +8,9 @@ export default function EnsureAdminCookie() {
   useEffect(() => {
     if (once.current) return;
     once.current = true;
-
-    const has = document.cookie.includes("admin_upload_token=");
-    if (has) return;
-
     fetch("/api/admin/session", {
       method: "POST",
+      credentials: "include",
     }).catch(() => {});
   }, []);
 
