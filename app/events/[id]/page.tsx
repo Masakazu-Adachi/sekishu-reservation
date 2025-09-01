@@ -225,7 +225,7 @@ export default function EventDetailPage() {
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
       {event.greetingDelta && (
         <div
-          className="mb-4"
+          className="greeting-content mb-4"
           dangerouslySetInnerHTML={{ __html: deltaToHtml(event.greetingDelta) }}
         />
       )}

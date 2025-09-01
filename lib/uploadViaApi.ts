@@ -12,6 +12,7 @@ export async function uploadViaApi(
   return await new Promise<UploadResponse>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/upload');
+    console.log('sending token', process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN);
     xhr.setRequestHeader(
       'x-admin-upload-token',
       process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN!
