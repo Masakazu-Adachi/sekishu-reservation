@@ -14,7 +14,7 @@ export async function uploadViaApi(
     xhr.open('POST', '/api/upload');
     xhr.setRequestHeader(
       'x-admin-upload-token',
-      process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN || ''
+      process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN!
     );
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {

@@ -28,6 +28,15 @@ body {
   font-family: var(--font-serif), serif;
 }
 
+a {
+  color: #1a0dab;
+  text-decoration: underline;
+}
+
+a:hover {
+  color: #c00;
+}
+
 .ql-editor img {
   max-width: 100%;
   height: auto;
