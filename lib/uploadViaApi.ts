@@ -12,11 +12,12 @@ export async function uploadViaApi(
   return await new Promise<UploadResponse>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/upload');
-    console.log('sending token', process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN);
-    xhr.setRequestHeader(
-      'x-admin-upload-token',
-      process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN!
-    );
+    const token = process.env.NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN;
+    if (!token) {
+      throw new Error('NEXT_PUBLIC_ADMIN_UPLOAD_TOKEN is not defined');
+    }
+    console.log('sending token', token);
+    xhr.setRequestHeader('x-admin-upload-token', token);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {
         onProgress(Math.round((e.loaded / e.total) * 100));
