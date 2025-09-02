@@ -50,3 +50,9 @@ body {
 .greeting-content .ql-align-center { text-align: center !important; }
 .greeting-content .ql-align-right  { text-align: right  !important; }
 .greeting-content .ql-align-justify{ text-align: justify !important; }
+
+/* 文頭・連続スペースと改行を保持して折り返す */
+.greeting-html,
+.rich-html {
+  white-space: pre-wrap;
+}

@@ -18,6 +18,7 @@ import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 import type { Event, Seat } from "@/types";
 import { linkifyAndLineBreak } from "@/lib/text";
 import { stripBlobImages } from "@/utils/url";
+import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -39,7 +40,12 @@ export default function EventDetailPage() {
       if (snapshot.exists()) {
         const data = snapshot.data();
         const venues = data.venues || (data.venue ? [data.venue] : []);
-        setEvent({ id: snapshot.id, ...data, venues, greeting: data.greeting || "" } as Event);
+        setEvent({
+          id: snapshot.id,
+          ...data,
+          venues,
+          greeting: preserveLeadingSpaces(data.greeting || ""),
+        } as Event);
       }
     };
     fetchEvent();
@@ -215,7 +221,7 @@ export default function EventDetailPage() {
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
       {event.greeting && (
         <div
-          className="greeting-content mb-4"
+          className="greeting-content mb-4 greeting-html"
           dangerouslySetInnerHTML={{ __html: stripBlobImages(event.greeting) }}
         />
       )}

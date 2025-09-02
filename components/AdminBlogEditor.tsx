@@ -23,6 +23,7 @@ import { uploadImageToStorage } from "@/lib/storageImages";
 import type { BlogPost } from "@/types";
 import { deltaToHtml } from "@/lib/quillDelta";
 import { isUnsafeImageSrc, stripBlobImages } from "@/utils/url";
+import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
 interface Props {
   collectionName: string;
@@ -439,11 +440,15 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         const p = { id: d.id, ...(d.data() as Omit<BlogPost, "id">) };
         if (!p.body && p.bodyHtmlUrl) {
           try {
-            p.body = await (await fetch(p.bodyHtmlUrl)).text();
+            p.body = preserveLeadingSpaces(
+              await (await fetch(p.bodyHtmlUrl)).text()
+            );
           } catch {}
         }
         if (p.bodyDelta) {
-          p.body = deltaToHtml(p.bodyDelta);
+          p.body = preserveLeadingSpaces(deltaToHtml(p.bodyDelta));
+        } else if (p.body) {
+          p.body = preserveLeadingSpaces(p.body);
         }
         return p;
       })
@@ -472,7 +477,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       const editor = quillRef.current?.getEditor();
       if (!editor) throw new Error("editor not ready");
       await normalizeDataImagesInEditor(editor, storagePath);
-        const delta = editor.getContents();
+        const html = preserveLeadingSpaces(editor.root.innerHTML ?? "");
+        const delta = editor.clipboard.convert({ html });
         const ops = delta.ops as DeltaOperation[] | undefined;
         const bodyDelta = { ops };
       if (!isPlainJSON(bodyDelta)) {
@@ -481,7 +487,6 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         setUploading(false);
         return;
       }
-      const html = editor.root.innerHTML ?? "";
       deltaSize = new Blob([JSON.stringify(bodyDelta)]).size;
       htmlSize = new Blob([html]).size;
       if (deltaSize > 800000) {
@@ -645,15 +650,19 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
                     setEditingId(post.id);
                     setTitle(post.title);
                     if (post.bodyDelta) {
-                      setBody(deltaToHtml(post.bodyDelta));
+                      setBody(preserveLeadingSpaces(deltaToHtml(post.bodyDelta)));
                     } else if (post.bodyHtmlUrl) {
                       try {
-                        setBody(await (await fetch(post.bodyHtmlUrl)).text());
+                        setBody(
+                          preserveLeadingSpaces(
+                            await (await fetch(post.bodyHtmlUrl)).text()
+                          )
+                        );
                       } catch {
-                        setBody(post.body || "");
+                        setBody(preserveLeadingSpaces(post.body || ""));
                       }
                     } else {
-                      setBody(post.body || "");
+                      setBody(preserveLeadingSpaces(post.body || ""));
                     }
                     if (inputRef.current) inputRef.current.value = "";
                   }}
@@ -674,9 +683,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
             <div
               className="text-sm"
               dangerouslySetInnerHTML={{
-                __html: stripBlobImages(
-                  post.bodyDelta ? deltaToHtml(post.bodyDelta) : post.body || ""
-                ),
+                __html: stripBlobImages(post.body || ""),
               }}
             />
           </div>

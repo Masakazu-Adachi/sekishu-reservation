@@ -10,6 +10,7 @@ import LinkBackToHome from "@/components/LinkBackToHome";
 import { deltaToHtml } from "@/lib/quillDelta";
 import RichHtml from "@/components/RichHtml";
 import { isUnsafeImageSrc } from "@/utils/url";
+import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
 export default function PastPostDetailPage() {
   const { id } = useParams();
@@ -31,14 +32,14 @@ export default function PastPostDetailPage() {
   useEffect(() => {
     if (!post) return;
     if (post.bodyDelta) {
-      setHtml(deltaToHtml(post.bodyDelta));
+      setHtml(preserveLeadingSpaces(deltaToHtml(post.bodyDelta)));
     } else if (post.bodyHtmlUrl) {
       fetch(post.bodyHtmlUrl)
         .then(res => res.text())
-        .then(setHtml)
-        .catch(() => setHtml(post.body || ""));
+        .then((t) => setHtml(preserveLeadingSpaces(t)))
+        .catch(() => setHtml(preserveLeadingSpaces(post.body || "")));
     } else {
-      setHtml(post.body || "");
+      setHtml(preserveLeadingSpaces(post.body || ""));
     }
   }, [post]);
 
@@ -59,7 +60,7 @@ export default function PastPostDetailPage() {
         />
       )}
       <h1 className="text-3xl font-bold mb-4 font-serif">{post.title}</h1>
-      <div className="text-gray-700 mb-4">
+      <div className="text-gray-700 mb-4 rich-html">
         <RichHtml html={html} />
       </div>
       <p className="text-right text-sm text-gray-500">{date}</p>
