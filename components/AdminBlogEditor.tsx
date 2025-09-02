@@ -478,7 +478,7 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       if (!editor) throw new Error("editor not ready");
       await normalizeDataImagesInEditor(editor, storagePath);
         const html = preserveLeadingSpaces(editor.root.innerHTML ?? "");
-        const delta = editor.clipboard.convert({ html });
+        const delta = editor.clipboard.convert(html);
         const ops = delta.ops as DeltaOperation[] | undefined;
         const bodyDelta = { ops };
       if (!isPlainJSON(bodyDelta)) {

@@ -37,7 +37,7 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
     []
   );
 
-  // 初期化は一度だけ。value/onChange を依存に入れない
+  // 初期化は基本1回。eventId が変わった時のみ再初期化
   useEffect(() => {
     if (!containerRef.current) return;
     if (quillRef.current) return; // 既に初期化済みなら何もしない
@@ -97,19 +97,13 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
 
       quillRef.current = editor;
 
-      // 初期値は一度だけ反映
-      if (value && !initialAppliedRef.current) {
-        editor.clipboard.dangerouslyPasteHTML(value);
-        initialAppliedRef.current = true;
-      }
-
       // text-change は1回だけ登録。最新の onChange は ref から読む
       editor.on("text-change", () => {
         const html = editor.root.innerHTML;
         onChangeRef.current(html);
       });
     })();
-  }, []); // 初期化は一度だけ
+  }, [eventId, toolbar]); // 初期化は基本1回。eventId が変わった時のみ再初期化
 
   // 外部から value が変わった時だけ（かつエディタが非フォーカス時）同期
   useEffect(() => {
