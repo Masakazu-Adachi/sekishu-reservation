@@ -224,8 +224,6 @@ export default function EventDetailPage() {
           dangerouslySetInnerHTML={{ __html: stripBlobImages(event.greeting) }}
         />
       )}
-      <p>日付: {event.date.toDate().toLocaleDateString("ja-JP")}</p>
-      <p className="mb-4">説明: {event.description}</p>
 
       <form onSubmit={handleOpenConfirmation} className="space-y-4">
         <div>
