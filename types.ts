@@ -31,6 +31,7 @@ export interface EventSummary {
   description?: string;
   participants?: number;
   capacity?: number;
+  greetingHtml?: string | null;
 }
 
 export interface Reservation {
