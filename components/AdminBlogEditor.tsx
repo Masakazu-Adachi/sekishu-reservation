@@ -478,7 +478,8 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       if (!editor) throw new Error("editor not ready");
       await normalizeDataImagesInEditor(editor, storagePath);
         const html = preserveLeadingSpaces(editor.root.innerHTML ?? "");
-        const delta = editor.clipboard.convert({ html });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const delta = (editor.clipboard as any).convert(html);
         const ops = delta.ops as DeltaOperation[] | undefined;
         const bodyDelta = { ops };
       if (!isPlainJSON(bodyDelta)) {
