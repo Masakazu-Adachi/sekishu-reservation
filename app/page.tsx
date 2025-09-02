@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { INK_BUTTON } from "@/components/ui/buttonStyles";
 import { isUnsafeImageSrc, stripBlobImages } from "@/utils/url";
+import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
 export default function HomePage() {
   const [topImageUrl, setTopImageUrl] = useState("/hero-matcha.png");
@@ -32,7 +33,9 @@ export default function HomePage() {
         if (data.heroImageUrl) setTopImageUrl(data.heroImageUrl);
         if (data.heroImageAlt) setHeroImageAlt(data.heroImageAlt);
         if (data.greetingHtml) {
-          setGreetingHtml(data.greetingHtml as string);
+          setGreetingHtml(
+            preserveLeadingSpaces(data.greetingHtml as string)
+          );
         } else if (data.paragraphs) {
           setParagraphs(data.paragraphs as string[]);
         } else if (data.greetingLines) {
@@ -84,7 +87,7 @@ export default function HomePage() {
         )}
         {greetingHtml ? (
           <div
-            className="text-lg font-serif space-y-4 [&_a]:text-blue-600 [&_a]:underline"
+            className="text-lg font-serif space-y-4 [&_a]:text-blue-600 [&_a]:underline greeting-html"
             dangerouslySetInnerHTML={{ __html: stripBlobImages(greetingHtml) }}
           />
         ) : (

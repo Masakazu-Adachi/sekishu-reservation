@@ -5,6 +5,7 @@ import LinkBackToAdmin2Top from "@/components/LinkBackToAdmin2Top";
 import RichTextEditor from "@/components/RichTextEditor";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
 export default function GreetingPage() {
   const [html, setHtml] = useState("");
@@ -41,7 +42,11 @@ export default function GreetingPage() {
 
   const handleSave = async () => {
     try {
-      await setDoc(doc(db, "settings", "publicSite"), { greetingHtml: html }, { merge: true });
+      await setDoc(
+        doc(db, "settings", "publicSite"),
+        { greetingHtml: preserveLeadingSpaces(html) },
+        { merge: true }
+      );
       showToast("ごあいさつを保存しました！");
     } catch (err) {
       console.error(err);

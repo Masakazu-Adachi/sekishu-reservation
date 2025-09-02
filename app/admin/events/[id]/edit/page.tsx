@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import type { Seat } from "@/types";
 import QuillLite from "@/components/QuillLite";
+import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
 const hourOptions = Array.from({ length: 24 }, (_, i) =>
   String(i).padStart(2, "0")
@@ -163,7 +164,7 @@ export default function EditEventPage() {
     const baseData = {
       title: form.title,
       venues: venues.length ? venues : null,
-      greeting: form.greeting || "",
+      greeting: preserveLeadingSpaces(form.greeting) || "",
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
       description: form.description,
