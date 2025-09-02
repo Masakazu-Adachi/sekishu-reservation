@@ -30,6 +30,7 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline"],
       [{ list: "ordered" }, { list: "bullet" }],
+      [{ align: [] }],
       ["link", "image"],
       ["clean"],
     ],
@@ -80,6 +81,18 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
             },
           },
         },
+        // 揃えなどを反映させるため formats を明示
+        formats: [
+          "header",
+          "bold",
+          "italic",
+          "underline",
+          "list",
+          "bullet",
+          "link",
+          "image",
+          "align",
+        ],
       });
 
       quillRef.current = editor;
