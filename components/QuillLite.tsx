@@ -38,6 +38,7 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
   );
 
   // 初期化は一度だけ。value/onChange を依存に入れない
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!containerRef.current) return;
     if (quillRef.current) return; // 既に初期化済みなら何もしない
@@ -109,6 +110,7 @@ export default function QuillLite({ value, onChange, eventId }: Props) {
         onChangeRef.current(html);
       });
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 初期化は一度だけ
 
   // 外部から value が変わった時だけ（かつエディタが非フォーカス時）同期
