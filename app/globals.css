@@ -42,3 +42,11 @@ body {
   max-width: 100%;
   height: auto;
 }
+
+/* Quill の揃えを強制反映（.prose 等の上書き対策） */
+.prose .ql-align-center { text-align: center !important; }
+.prose .ql-align-right  { text-align: right  !important; }
+.prose .ql-align-justify{ text-align: justify !important; }
+.greeting-content .ql-align-center { text-align: center !important; }
+.greeting-content .ql-align-right  { text-align: right  !important; }
+.greeting-content .ql-align-justify{ text-align: justify !important; }

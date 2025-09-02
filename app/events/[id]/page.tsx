@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 import { db } from "@/lib/firebase";
 import {
   doc,
@@ -18,10 +17,7 @@ import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 import type { Event, Seat } from "@/types";
 import { linkifyAndLineBreak } from "@/lib/text";
-import { isUnsafeImageSrc, stripBlobImages } from "@/utils/url";
-
-const firstImg = (html: string) =>
-  html.match(/<img[^>]+src="([^\"]+)"/i)?.[1] || null;
+import { stripBlobImages } from "@/utils/url";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -216,20 +212,6 @@ export default function EventDetailPage() {
 
   return (
     <main className="p-6 max-w-xl mx-auto font-serif">
-      {(() => {
-        const cover = firstImg(event.greeting || "");
-        return cover && !isUnsafeImageSrc(cover) ? (
-          <div className="mb-4">
-            <Image
-              src={cover}
-              alt=""
-              width={800}
-              height={600}
-              className="w-full h-auto rounded"
-            />
-          </div>
-        ) : null;
-      })()}
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
       {event.greeting && (
         <div

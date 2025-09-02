@@ -31,8 +31,6 @@ export interface EventSummary {
   description?: string;
   participants?: number;
   capacity?: number;
-  /** greeting 内の先頭画像 URL */
-  thumbnailUrl?: string;
 }
 
 export interface Reservation {
