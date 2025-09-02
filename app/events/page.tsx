@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import type { EventSummary, Seat } from "@/types";
 import LinkBackToHome from "@/components/LinkBackToHome";
+import { extractFirstImageSrc } from "@/lib/extractFirstImage";
  
 
 export default function EventsPage() {
@@ -26,6 +27,7 @@ export default function EventsPage() {
             rawDate: d.date?.toDate() as Date,
             cost: d.cost,
             description: d.description,
+            greetingHtml: d.greeting || null,
             participants: (d.seats as Seat[] | undefined)?.reduce(
               (sum: number, seat) => sum + (seat.reserved || 0),
               0
@@ -51,6 +53,7 @@ export default function EventsPage() {
             }),
             cost: ev.cost,
             description: ev.description,
+            greetingHtml: ev.greetingHtml,
             participants: ev.participants,
             capacity: ev.capacity,
           } as EventSummary;
@@ -65,35 +68,47 @@ export default function EventsPage() {
       <LinkBackToHome />
       <h1 className="text-2xl font-bold text-center mb-6">お茶会のご案内</h1>
       <div className="space-y-8">
-        {events.map((event) => (
-          <div
-            key={event.id}
-            className="p-6 border rounded-lg shadow-lg bg-white hover:shadow-xl transition-shadow"
-          >
-            <h2 className="text-xl font-bold mb-2">{event.title}</h2>
-            <p className="mb-1 font-semibold">
-              会場: <span className="font-normal">{event.venue}</span>
-            </p>
-            <p className="mb-1 font-semibold">
-              日時: <span className="font-normal">{event.date}</span>
-            </p>
-            <p className="mb-1 font-semibold">
-              参加費用: <span className="font-normal">{event.cost}円</span>
-            </p>
-            <p className="mb-3 font-semibold">
-              参加人数:
-              <span className="font-normal">
-                {event.participants}/{event.capacity}人
-              </span>
-            </p>
-            <p className="mb-4">{event.description}</p>
-            <Link href={`/events/${event.id}`}>
-              <button className="w-32 mx-auto block bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 rounded shadow transition-colors font-serif">
-                予約する
-              </button>
-            </Link>
-          </div>
-        ))}
+        {events.map((event) => {
+          const thumb = extractFirstImageSrc(event.greetingHtml);
+          return (
+            <article
+              key={event.id}
+              className={`p-6 border rounded-lg shadow-lg bg-white hover:shadow-xl transition-shadow grid gap-4 ${
+                thumb ? "md:grid-cols-[1fr_260px]" : ""
+              }`}
+            >
+              <div>
+                <h2 className="text-xl font-bold mb-2">{event.title}</h2>
+                <p className="mb-1 font-semibold">
+                  会場: <span className="font-normal">{event.venue}</span>
+                </p>
+                <p className="mb-1 font-semibold">
+                  日時: <span className="font-normal">{event.date}</span>
+                </p>
+                <p className="mb-1 font-semibold">
+                  参加費用: <span className="font-normal">{event.cost}円</span>
+                </p>
+                <p className="mb-3 font-semibold">
+                  参加人数:
+                  <span className="font-normal">
+                    {event.participants}/{event.capacity}人
+                  </span>
+                </p>
+                <p className="mb-4">{event.description}</p>
+                <Link href={`/events/${event.id}`}>
+                  <button className="w-32 mx-auto block bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 rounded shadow transition-colors font-serif">
+                    予約する
+                  </button>
+                </Link>
+              </div>
+              {thumb ? (
+                <div className="relative w-full aspect-[4/3] overflow-hidden rounded-md">
+                  <img src={thumb} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
       </div>
     </main>
   );

@@ -16,7 +16,6 @@ import { nanoid } from "nanoid";
 import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 import type { Event, Seat } from "@/types";
-import { linkifyAndLineBreak } from "@/lib/text";
 import { stripBlobImages } from "@/utils/url";
 import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
@@ -225,20 +224,6 @@ export default function EventDetailPage() {
           dangerouslySetInnerHTML={{ __html: stripBlobImages(event.greeting) }}
         />
       )}
-      {event.venues && event.venues.length === 1 ? (
-        <p>
-          会場: <span dangerouslySetInnerHTML={{ __html: stripBlobImages(linkifyAndLineBreak(event.venues[0])) }} />
-        </p>
-      ) : event.venues && event.venues.length > 1 ? (
-        <div className="mb-2">
-          <p>会場:</p>
-          <ul className="list-disc pl-5">
-            {event.venues.map((v, i) => (
-              <li key={i} dangerouslySetInnerHTML={{ __html: stripBlobImages(linkifyAndLineBreak(v)) }} />
-            ))}
-          </ul>
-        </div>
-      ) : null}
       <p>日付: {event.date.toDate().toLocaleDateString("ja-JP")}</p>
       <p className="mb-4">説明: {event.description}</p>
 
@@ -333,7 +318,6 @@ export default function EventDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded space-y-4 text-lg max-w-sm w-full">
             <h2 className="text-xl font-bold">ご予約内容の確認</h2>
-            <p>会場: {(event?.venues || []).join(" / ")}</p>
             <p>日付: {event?.date.toDate().toLocaleDateString("ja-JP")}</p>
             {event?.seats && event.seats.length > 0 && (
               <p>時間: {selectedTime}</p>
