@@ -115,7 +115,7 @@ export default function UserListPage() {
     const seats = eventSeatMap[eventId];
     const selectedSeat = seats.find((s: Seat) => s.time === editForm.seatTime);
     if (!selectedSeat) {
-      alert("選択された時間枠が無効です");
+      alert("選択された時間枠または席が無効です");
       return;
     }
 
@@ -155,7 +155,7 @@ export default function UserListPage() {
             <th className="border px-2 py-1">住所</th>
             <th className="border px-2 py-1">人数</th>
             <th className="border px-2 py-1">イベント名</th>
-            <th className="border px-2 py-1">時間枠</th>
+            <th className="border px-2 py-1">時間/席</th>
             <th className="border px-2 py-1">予約日時</th>
             <th className="border px-2 py-1">操作</th>
           </tr>
@@ -216,7 +216,7 @@ export default function UserListPage() {
                     value={editForm.seatTime}
                     onChange={(e) => setEditForm({ ...editForm, seatTime: e.target.value })}
                   >
-                    <option value="">時間を選択</option>
+                    <option value="">時間または席を選択</option>
                     {(eventSeatTimes[r.eventId] || []).map((time) => (
                       <option key={time} value={time}>{time}</option>
                     ))}

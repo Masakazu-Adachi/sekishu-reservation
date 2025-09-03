@@ -67,7 +67,7 @@ export default function EventDetailPage() {
     const seat = (event.seats as Seat[]).find((s) => s.time === selectedTime);
     if (event.seats && event.seats.length > 0) {
       if (!seat) {
-        alert("選択された時間枠が無効です");
+        alert("選択された時間枠または席が無効です");
         return;
       }
 
@@ -188,7 +188,7 @@ export default function EventDetailPage() {
               <li><strong>日付:</strong> ${event.date
                 .toDate()
                 .toLocaleDateString("ja-JP")}</li>
-              <li><strong>時間:</strong> ${selectedTime || "時間指定なし"}</li>
+              <li><strong>時間/席:</strong> ${selectedTime || "時間指定なし"}</li>
               <li><strong>人数:</strong> ${guests}名</li>
               <li><strong>メール:</strong> ${email}</li>
               <li><strong>住所:</strong> ${address || "(未入力)"}</li>
@@ -275,14 +275,14 @@ export default function EventDetailPage() {
         </div>
         {event.seats && event.seats.length > 0 && (
           <div>
-            <label className="block mb-1">時間枠選択</label>
+            <label className="block mb-1">時間枠/席選択</label>
             <select
               className="border p-2 w-full"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
               required
             >
-              <option value="">時間を選択</option>
+              <option value="">時間または席を選択</option>
               {(event.seats as Seat[]).map((seat) => (
                 <option
                   key={seat.time}
@@ -321,7 +321,7 @@ export default function EventDetailPage() {
             <h2 className="text-xl font-bold">ご予約内容の確認</h2>
             <p>日付: {event?.date.toDate().toLocaleDateString("ja-JP")}</p>
             {event?.seats && event.seats.length > 0 && (
-              <p>時間: {selectedTime}</p>
+              <p>時間/席: {selectedTime}</p>
             )}
             {address && <p>住所: {address}</p>}
             <p>人数: {guests}名</p>

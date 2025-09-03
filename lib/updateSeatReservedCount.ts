@@ -10,7 +10,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 
-// 特定のイベントの各時間枠ごとの予約数（reserved）を集計し直す
+// 特定のイベントの各時間枠/席ごとの予約数（reserved）を集計し直す
 export const updateSeatReservedCount = async (eventId: string) => {
   const eventRef = doc(db, "events", eventId);
   const eventSnap = await getDoc(eventRef);
