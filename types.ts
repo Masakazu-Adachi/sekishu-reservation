@@ -1,4 +1,5 @@
 export interface Seat {
+  /** 時刻 (HH:mm) または席名 */
   time: string;
   capacity: number;
   reserved?: number;

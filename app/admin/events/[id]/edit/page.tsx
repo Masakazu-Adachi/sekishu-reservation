@@ -82,7 +82,9 @@ export default function EditEventPage() {
   }, [paramId, eventId]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
     index?: number
   ) => {
     const { name, value } = e.target;
@@ -90,7 +92,12 @@ export default function EditEventPage() {
       const updatedSeats = [...form.seats];
       const seat = { ...updatedSeats[index] };
       if (name === "seatType") {
-        seat.time = value === "tentative" ? TENTATIVE_LABEL : "08:00";
+        seat.time =
+          value === "tentative"
+            ? TENTATIVE_LABEL
+            : value === "seat"
+            ? ""
+            : "08:00";
       }
       if (name === "hour") {
         const minute = seat.time.includes(":") ? seat.time.split(":")[1] : "00";
@@ -99,6 +106,9 @@ export default function EditEventPage() {
       if (name === "minute") {
         const hour = seat.time.includes(":") ? seat.time.split(":")[0] : "08";
         seat.time = `${hour}:${value}`;
+      }
+      if (name === "label") {
+        seat.time = value;
       }
       if (name === "capacity") {
         seat.capacity = Number(value);
@@ -136,8 +146,14 @@ export default function EditEventPage() {
 
   const sortSeats = (seats: Seat[]) =>
     [...seats].sort((a, b) => {
+      const isTime = (t: string) => /^\d{2}:\d{2}$/.test(t);
       if (a.time === TENTATIVE_LABEL) return 1;
       if (b.time === TENTATIVE_LABEL) return -1;
+      const aIsTime = isTime(a.time);
+      const bIsTime = isTime(b.time);
+      if (aIsTime && bIsTime) return a.time.localeCompare(b.time);
+      if (aIsTime) return -1;
+      if (bIsTime) return 1;
       return a.time.localeCompare(b.time);
     });
 
@@ -306,10 +322,14 @@ export default function EditEventPage() {
         </div>
 
         <div className="space-y-2">
-          <p className="font-semibold">時間枠と定員（複数設定可）</p>
+          <p className="font-semibold">時間枠/席と定員（複数設定可）</p>
           {form.seats.map((seat, i) => {
             const [h, m] = seat.time.includes(":") ? seat.time.split(":") : ["08", "00"];
-            const seatType = seat.time === TENTATIVE_LABEL ? "tentative" : "time";
+            const seatType = seat.time === TENTATIVE_LABEL
+              ? "tentative"
+              : seat.time.includes(":")
+              ? "time"
+              : "seat";
             return (
               <div key={i} className="flex gap-2 items-center">
                 <select
@@ -319,6 +339,7 @@ export default function EditEventPage() {
                   className="border p-2"
                 >
                   <option value="time">時間指定</option>
+                  <option value="seat">席指定</option>
                   <option value="tentative">仮予約</option>
                 </select>
                 {seatType === "time" && (
@@ -348,6 +369,17 @@ export default function EditEventPage() {
                       ))}
                     </select>
                   </>
+                )}
+                {seatType === "seat" && (
+                  <input
+                    type="text"
+                    name="label"
+                    value={seat.time}
+                    onChange={(e) => handleChange(e, i)}
+                    maxLength={5}
+                    className="border p-2 w-20"
+                    placeholder="席名"
+                  />
                 )}
                 <select
                   name="capacity"

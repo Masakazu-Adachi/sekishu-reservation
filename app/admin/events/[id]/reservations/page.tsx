@@ -76,7 +76,7 @@ export default function EventReservationsPage() {
     const seat = (event.seats as Seat[]).find(
       (s) => s.time === editForm.seatTime
     );
-    if (!seat) return alert("時間枠が無効です");
+    if (!seat) return alert("時間枠または席が無効です");
 
     const reservationSnapshot = await getDocs(
       query(
@@ -143,7 +143,7 @@ export default function EventReservationsPage() {
                     onChange={(e) => setEditForm({ ...editForm, seatTime: e.target.value })}
                     className="border p-2 w-full"
                   >
-                    <option value="">時間を選択</option>
+                    <option value="">時間または席を選択</option>
                     {availableTimes.map((time) => (
                       <option key={time} value={time}>
                         {time}
@@ -180,7 +180,7 @@ export default function EventReservationsPage() {
                     <p className="font-semibold">
                       👤 {res.name}（{res.guests}名）
                     </p>
-                    <p className="text-sm text-gray-500">時間枠: {res.seatTime}</p>
+                    <p className="text-sm text-gray-500">時間/席: {res.seatTime}</p>
                     <p className="text-sm text-gray-500">
                       住所: {res.address || "(未入力)"}
                     </p>

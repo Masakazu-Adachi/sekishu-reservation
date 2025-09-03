@@ -55,7 +55,7 @@ export default function ReservationConfirmPage() {
     const seat = (event.seats as Seat[]).find(
       (s) => s.time === original.seatTime
     );
-    if (!seat) return alert("時間枠が無効です");
+    if (!seat) return alert("時間枠または席が無効です");
 
     const reservationSnapshot = await getDocs(
       query(
@@ -122,7 +122,7 @@ export default function ReservationConfirmPage() {
       {reservations.map((r) => (
         <div key={r.id} className="border rounded p-4 mb-4 shadow">
           <p>イベントID: {r.eventId}</p>
-          <p>時間枠: {r.seatTime || "時間指定なし"}</p>
+          <p>時間/席: {r.seatTime || "時間指定なし"}</p>
           <p>人数: {r.guests}</p>
           <p>住所: {r.address || "(未入力)"}</p>
           <input
