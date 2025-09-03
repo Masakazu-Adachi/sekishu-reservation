@@ -17,6 +17,7 @@ import { updateParticipantCount } from "@/lib/updateParticipantCount";
 import { updateSeatReservedCount } from "@/lib/updateSeatReservedCount";
 import type { Event, Seat } from "@/types";
 import { stripBlobImages } from "@/utils/url";
+import { stripMetaLines } from "@/lib/stripMetaLines";
 import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
 
 export default function EventDetailPage() {
@@ -221,7 +222,9 @@ export default function EventDetailPage() {
       {event.greeting && (
         <div
           className="greeting-content mb-4 greeting-html"
-          dangerouslySetInnerHTML={{ __html: stripBlobImages(event.greeting) }}
+          dangerouslySetInnerHTML={{
+            __html: stripBlobImages(stripMetaLines(event.greeting)),
+          }}
         />
       )}
 
