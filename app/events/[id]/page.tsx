@@ -213,10 +213,37 @@ export default function EventDetailPage() {
   }
   };
 
+  // ★ 不要な「会場/日付/説明(備考)」行を、モーダル外から強制的に除去する保険
+  //   - モーダルは .fixed.inset-0 を持つため、そこはスキップ
+  //   - greeting 内に含まれてしまった場合や、将来の誤差し込みにも対応
+  useEffect(() => {
+    const root = document.getElementById("event-detail-root");
+    if (!root) return;
+    const isInModal = (el: Element) =>
+      !!el.closest(".fixed.inset-0"); // 予約確認モーダル
+    const LABELS = [
+      "会場:",
+      "会場：",
+      "日付:",
+      "日付：",
+      "説明:",
+      "説明：",
+      "備考:",
+      "備考：",
+    ];
+    const candidates = root.querySelectorAll("p, li, dt, dd");
+    candidates.forEach((el) => {
+      const txt = (el.textContent || "").trim();
+      if (LABELS.some((l) => txt.startsWith(l)) && !isInModal(el)) {
+        el.remove();
+      }
+    });
+  }, [event?.id]);
+
   if (!event) return <p className="p-6">読み込み中...</p>;
 
   return (
-    <main className="p-6 max-w-xl mx-auto font-serif">
+    <main id="event-detail-root" className="p-6 max-w-xl mx-auto font-serif">
       <h1 className="text-2xl font-bold mb-4">{event.title}</h1>
       {event.greeting && (
         <div
@@ -224,6 +251,7 @@ export default function EventDetailPage() {
           dangerouslySetInnerHTML={{ __html: stripBlobImages(event.greeting) }}
         />
       )}
+      {/* ← この直後〜フォーム直前に出ていた3行は削除済み。フォームはこのまま */}
 
       <form onSubmit={handleOpenConfirmation} className="space-y-4">
         <div>
