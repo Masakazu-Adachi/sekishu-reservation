@@ -153,14 +153,6 @@ export default function EventDetailPage() {
               <strong>パスワード：</strong>${password}</p>
             </div>
             <hr/>
-            <div>
-              <p><strong>お支払い金額：</strong>${totalCost}円</p>
-              <p>お振込み先：</p>
-              <p>
-                XXX銀行<br/>XXX支店<br/>普通 XXXXXXXX<br/>振込期限：X月X日<br/>
-                振込人名義はご予約者様のお名前でお願いいたします。
-              </p>
-            </div>
             <p>当日お会いできますことを、心より楽しみにしております。</p>
             <p>ご不明点などございましたら、事務局の神田まで（メール：kandatoshi1@gmail.com）お気軽にご連絡ください。</p>
           </div>
