@@ -37,6 +37,8 @@ type Row = {
   companion: string;
   createdAt: string;
   isCompanion: boolean;
+  parentId?: string;
+  companionIndex?: number;
   email?: string;
   address?: string;
   guests?: number;
@@ -54,6 +56,7 @@ export default function UserListPage() {
     address: "",
     guests: 1,
     seatTime: "",
+    companions: [] as string[],
   });
   const [eventSeatTimes, setEventSeatTimes] = useState<Record<string, string[]>>({});
   const [eventSeatMap, setEventSeatMap] = useState<Record<string, Seat[]>>({});
@@ -148,31 +151,41 @@ export default function UserListPage() {
     await updateParticipantCount(eventId);
     await updateSeatReservedCount(eventId);
     setEditingId(null);
-    setEditForm({ name: "", email: "", address: "", guests: 1, seatTime: "" });
+    setEditForm({
+      name: "",
+      email: "",
+      address: "",
+      guests: 1,
+      seatTime: "",
+      companions: [],
+    });
     const updated = await getDocs(collection(db, "reservations"));
     const dataUpdated = updated.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Reservation[];
     setReservations(dataUpdated);
   };
-
   const displayReservations: Row[] = reservations.flatMap((r) => {
+    const isEditing = editingId === r.id;
     const main: Row = {
       id: r.id,
-      representative: r.name,
+      representative: isEditing ? editForm.name : r.name,
       companion: "",
-      email: r.email,
-      address: r.address,
-      guests: r.guests,
+      email: isEditing ? editForm.email : r.email,
+      address: isEditing ? editForm.address : r.address,
+      guests: isEditing ? editForm.guests : r.guests,
       eventId: r.eventId,
-      seatTime: r.seatTime,
+      seatTime: isEditing ? editForm.seatTime : r.seatTime,
       createdAt: r.createdAt,
       isCompanion: false,
     };
-    const companions: Row[] = (r.companions || []).map((name, index) => ({
+    const compArray = isEditing ? editForm.companions : r.companions || [];
+    const companions: Row[] = compArray.map((name, index) => ({
       id: `${r.id}-c${index}`,
-      representative: r.name,
+      parentId: r.id,
+      representative: isEditing ? editForm.name : r.name,
       companion: name,
       createdAt: r.createdAt,
       isCompanion: true,
+      companionIndex: index,
     }));
     return [main, ...companions];
   });
@@ -216,7 +229,25 @@ export default function UserListPage() {
                   r.representative
                 )}
               </td>
-              <td className="border px-2 py-1">{r.isCompanion ? r.companion : ""}</td>
+              <td className="border px-2 py-1">
+                {r.isCompanion ? (
+                  editingId && r.parentId === editingId ? (
+                    <input
+                      className="border p-1 w-full"
+                      value={editForm.companions[r.companionIndex!] || ""}
+                      onChange={(e) => {
+                        const newCompanions = [...editForm.companions];
+                        newCompanions[r.companionIndex!] = e.target.value;
+                        setEditForm({ ...editForm, companions: newCompanions });
+                      }}
+                    />
+                  ) : (
+                    r.companion
+                  )
+                ) : (
+                  ""
+                )}
+              </td>
               <td className="border px-2 py-1">
                 {r.isCompanion ? (
                   <span className="text-gray-400">—</span>
@@ -255,12 +286,22 @@ export default function UserListPage() {
                     type="number"
                     className="border p-1 w-full"
                     value={editForm.guests}
-                    onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        guests: Number(e.target.value),
-                      })
-                    }
+                    onChange={(e) => {
+                      const newGuests = Number(e.target.value);
+                      setEditForm((prev) => {
+                        const guests = newGuests;
+                        const targetLength = Math.max(guests - 1, 0);
+                        let companions = [...prev.companions];
+                        if (companions.length < targetLength) {
+                          companions = companions.concat(
+                            Array(targetLength - companions.length).fill("")
+                          );
+                        } else if (companions.length > targetLength) {
+                          companions = companions.slice(0, targetLength);
+                        }
+                        return { ...prev, guests, companions };
+                      });
+                    }}
                   />
                 ) : (
                   r.guests
@@ -314,13 +355,23 @@ export default function UserListPage() {
                   <>
                     <button
                       onClick={() => {
+                        const reservation = reservations.find((res) => res.id === r.id);
+                        const guests = reservation?.guests || 1;
+                        let companions = reservation?.companions || [];
+                        const target = Math.max(guests - 1, 0);
+                        if (companions.length < target) {
+                          companions = companions.concat(Array(target - companions.length).fill(""));
+                        } else if (companions.length > target) {
+                          companions = companions.slice(0, target);
+                        }
                         setEditingId(r.id);
                         setEditForm({
-                          name: r.representative,
-                          email: r.email || "",
-                          address: r.address || "",
-                          guests: r.guests || 1,
-                          seatTime: r.seatTime || "",
+                          name: reservation?.name || "",
+                          email: reservation?.email || "",
+                          address: reservation?.address || "",
+                          guests,
+                          seatTime: reservation?.seatTime || "",
+                          companions,
                         });
                       }}
                       className="bg-yellow-400 text-white px-2 py-1 rounded text-sm"
