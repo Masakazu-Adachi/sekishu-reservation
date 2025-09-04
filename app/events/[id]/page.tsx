@@ -165,7 +165,7 @@ export default function EventDetailPage() {
             </div>
             <hr/>
             <p>当日お会いできますことを、心より楽しみにしております。</p>
-            <p>ご不明点などございましたら、事務局の神田まで（メール：kandatoshi1@gmail.com）お気軽にご連絡ください。</p>
+            <p>ご不明点などございましたら、事務局まで（メール：sekishuryu-nomuraha@googlegroups.com）お気軽にご連絡ください。</p>
           </div>
         `,
       }),
