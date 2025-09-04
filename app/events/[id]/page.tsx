@@ -27,6 +27,7 @@ export default function EventDetailPage() {
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [guests, setGuests] = useState(1);
+  const [companionNames, setCompanionNames] = useState<string[]>([]);
   const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -109,6 +110,7 @@ export default function EventDetailPage() {
       email,
       address,
       guests,
+      companions: companionNames,
       eventId: event.id,
       seatTime: selectedTime || "",
       notes,
@@ -184,6 +186,7 @@ export default function EventDetailPage() {
               <li><strong>人数:</strong> ${guests}名</li>
               <li><strong>メール:</strong> ${email}</li>
               <li><strong>住所:</strong> ${address || "(未入力)"}</li>
+              <li><strong>同席者:</strong> ${companionNames.join("、") || "(なし)"}</li>
               <li><strong>合計金額:</strong> ${totalCost}円</li>
               <li><strong>自由記述:</strong> ${notes || "(なし)"}</li>
             </ul>
@@ -198,6 +201,7 @@ export default function EventDetailPage() {
     setEmail("");
     setAddress("");
     setGuests(1);
+    setCompanionNames([]);
     setSelectedTime("");
     setNotes("");
     } finally {
@@ -255,7 +259,13 @@ export default function EventDetailPage() {
           <select
             className="border p-2 w-full"
             value={guests}
-            onChange={(e) => setGuests(Number(e.target.value))}
+            onChange={(e) => {
+              const count = Number(e.target.value);
+              setGuests(count);
+              setCompanionNames((prev) =>
+                Array.from({ length: Math.max(count - 1, 0) }, (_, i) => prev[i] || "")
+              );
+            }}
             required
           >
             {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
@@ -265,6 +275,28 @@ export default function EventDetailPage() {
             ))}
           </select>
         </div>
+        {guests > 1 && (
+          <div>
+            <label className="block mb-1">同席者のお名前</label>
+            {Array.from({ length: guests - 1 }).map((_, i) => (
+              <input
+                key={i}
+                type="text"
+                className="border p-2 w-full mb-2"
+                value={companionNames[i] || ""}
+                onChange={(e) => {
+                  const names = [...companionNames];
+                  names[i] = e.target.value;
+                  setCompanionNames(names);
+                }}
+                required
+              />
+            ))}
+            <p className="text-sm text-gray-500">
+              ご一緒に参加される方のお名前を記載ください。
+            </p>
+          </div>
+        )}
         {event.seats && event.seats.length > 0 && (
           <div>
             <label className="block mb-1">時間枠/席選択</label>
