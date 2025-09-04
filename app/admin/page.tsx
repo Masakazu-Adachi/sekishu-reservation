@@ -21,8 +21,8 @@ export default function AdminDashboard() {
           className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
           onClick={() => router.push("/admin/users")}
         >
-          <h2 className="text-xl font-semibold mb-2">👤 ユーザー一覧</h2>
-          <p>ユーザーの管理と閲覧</p>
+          <h2 className="text-xl font-semibold mb-2">👤 参加者一覧</h2>
+          <p>参加者の管理と閲覧</p>
         </div>
       </div>
     </main>

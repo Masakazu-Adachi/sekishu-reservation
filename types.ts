@@ -46,6 +46,7 @@ export interface Reservation {
   notes?: string;
   createdAt: string;
   password?: string;
+  companions?: string[];
 }
 
 export interface GreetingLine {

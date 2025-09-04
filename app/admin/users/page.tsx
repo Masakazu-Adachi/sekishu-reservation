@@ -28,6 +28,7 @@ interface Reservation {
   notes?: string;
   createdAt: string;
   password?: string;
+  companions?: string[];
 }
 
 export default function UserListPage() {
@@ -140,17 +141,41 @@ export default function UserListPage() {
     setReservations(dataUpdated);
   };
 
+  const displayReservations = reservations.flatMap((r) => {
+    const main = {
+      id: r.id,
+      representative: r.name,
+      companion: "",
+      email: r.email,
+      address: r.address,
+      guests: r.guests,
+      eventId: r.eventId,
+      seatTime: r.seatTime,
+      createdAt: r.createdAt,
+      isCompanion: false,
+    };
+    const companions = (r.companions || []).map((name, index) => ({
+      id: `${r.id}-c${index}`,
+      representative: r.name,
+      companion: name,
+      createdAt: r.createdAt,
+      isCompanion: true,
+    }));
+    return [main, ...companions];
+  });
+
   return (
     <main className="p-6 max-w-5xl mx-auto">
       <Link href="/admin" className="text-blue-600 underline block mb-4">
         ← 管理ダッシュボードに戻る
       </Link>
-      <h1 className="text-2xl font-bold mb-4">全ユーザー予約一覧</h1>
+      <h1 className="text-2xl font-bold mb-4">全予約者一覧</h1>
 
       <table className="w-full border text-sm shadow-md bg-white">
         <thead>
           <tr className="bg-gray-100">
-            <th className="border px-2 py-1">名前</th>
+            <th className="border px-2 py-1">申込代表者</th>
+            <th className="border px-2 py-1">同席者</th>
             <th className="border px-2 py-1">メールアドレス</th>
             <th className="border px-2 py-1">住所</th>
             <th className="border px-2 py-1">人数</th>
@@ -161,64 +186,92 @@ export default function UserListPage() {
           </tr>
         </thead>
         <tbody>
-          {reservations.map((r) => (
+          {displayReservations.map((r) => (
             <tr key={r.id}>
               <td className="border px-2 py-1">
-                {editingId === r.id ? (
+                {r.isCompanion ? (
+                  r.representative
+                ) : editingId === r.id ? (
                   <input
                     className="border p-1 w-full"
                     value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, name: e.target.value })
+                    }
                   />
                 ) : (
-                  r.name
+                  r.representative
                 )}
               </td>
+              <td className="border px-2 py-1">{r.isCompanion ? r.companion : ""}</td>
               <td className="border px-2 py-1">
-                {editingId === r.id ? (
+                {r.isCompanion ? (
+                  ""
+                ) : editingId === r.id ? (
                   <input
                     className="border p-1 w-full"
                     value={editForm.email}
-                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, email: e.target.value })
+                    }
                   />
                 ) : (
                   r.email
                 )}
               </td>
               <td className="border px-2 py-1">
-                {editingId === r.id ? (
+                {r.isCompanion ? (
+                  ""
+                ) : editingId === r.id ? (
                   <input
                     className="border p-1 w-full"
                     value={editForm.address}
-                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, address: e.target.value })
+                    }
                   />
                 ) : (
                   r.address || ""
                 )}
               </td>
               <td className="border px-2 py-1">
-                {editingId === r.id ? (
+                {r.isCompanion ? (
+                  ""
+                ) : editingId === r.id ? (
                   <input
                     type="number"
                     className="border p-1 w-full"
                     value={editForm.guests}
-                    onChange={(e) => setEditForm({ ...editForm, guests: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        guests: Number(e.target.value),
+                      })
+                    }
                   />
                 ) : (
                   r.guests
                 )}
               </td>
-              <td className="border px-2 py-1">{eventTitles[r.eventId] || "(不明なイベント)"}</td>
               <td className="border px-2 py-1">
-                {editingId === r.id ? (
+                {r.isCompanion ? "" : eventTitles[r.eventId || ""] || ""}
+              </td>
+              <td className="border px-2 py-1">
+                {r.isCompanion ? (
+                  ""
+                ) : editingId === r.id ? (
                   <select
                     className="border p-1 w-full"
                     value={editForm.seatTime}
-                    onChange={(e) => setEditForm({ ...editForm, seatTime: e.target.value })}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, seatTime: e.target.value })
+                    }
                   >
                     <option value="">時間または席を選択</option>
-                    {(eventSeatTimes[r.eventId] || []).map((time) => (
-                      <option key={time} value={time}>{time}</option>
+                    {(eventSeatTimes[r.eventId || ""] || []).map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
                     ))}
                   </select>
                 ) : (
@@ -229,7 +282,7 @@ export default function UserListPage() {
                 {format(new Date(r.createdAt), "yyyy/M/d HH:mm:ss", { locale: ja })}
               </td>
               <td className="border px-2 py-1 flex gap-1">
-                {editingId === r.id ? (
+                {r.isCompanion ? null : editingId === r.id ? (
                   <>
                     <button
                       onClick={handleEditSubmit}
@@ -250,11 +303,11 @@ export default function UserListPage() {
                       onClick={() => {
                         setEditingId(r.id);
                         setEditForm({
-                          name: r.name,
-                          email: r.email,
+                          name: r.representative,
+                          email: r.email || "",
                           address: r.address || "",
-                          guests: r.guests,
-                          seatTime: r.seatTime,
+                          guests: r.guests || 1,
+                          seatTime: r.seatTime || "",
                         });
                       }}
                       className="bg-yellow-400 text-white px-2 py-1 rounded text-sm"
