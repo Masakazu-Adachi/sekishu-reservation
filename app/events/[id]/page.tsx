@@ -25,6 +25,7 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [address, setAddress] = useState("");
   const [guests, setGuests] = useState(1);
   const [companionNames, setCompanionNames] = useState<string[]>([]);
@@ -56,12 +57,20 @@ export default function EventDetailPage() {
     e.preventDefault();
     if (!event) return;
     if ((event.seats?.length || 0) > 0 && !selectedTime) return;
+    if (email !== confirmEmail) {
+      alert("メールアドレスが一致しません");
+      return;
+    }
     setShowConfirmation(true);
   };
 
   const handleSubmit = async () => {
     if (!event) return;
     if ((event.seats?.length || 0) > 0 && !selectedTime) return;
+    if (email !== confirmEmail) {
+      alert("メールアドレスが一致しません");
+      return;
+    }
     setIsSubmitting(true);
     try {
 
@@ -208,6 +217,7 @@ export default function EventDetailPage() {
     alert("予約が完了しました！確認メールをご確認ください。");
     setName("");
     setEmail("");
+    setConfirmEmail("");
     setAddress("");
     setGuests(1);
     setCompanionNames([]);
@@ -251,6 +261,16 @@ export default function EventDetailPage() {
             className="border p-2 w-full"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1">メールアドレス（再確認）</label>
+          <input
+            type="email"
+            className="border p-2 w-full"
+            value={confirmEmail}
+            onChange={(e) => setConfirmEmail(e.target.value)}
             required
           />
         </div>

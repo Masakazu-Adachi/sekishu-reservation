@@ -58,6 +58,7 @@ export default function EditEventPage() {
     seats: [],
     greeting: "",
   });
+  const [originalSeats, setOriginalSeats] = useState<Seat[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export default function EditEventPage() {
           seats: data.seats || [],
           greeting: data.greeting || "",
         });
+        setOriginalSeats(data.seats || []);
       }
     };
     fetchEvent();
@@ -177,6 +179,39 @@ export default function EditEventPage() {
     e.preventDefault();
 
     const venues = form.venues.map((v) => v.trim()).filter((v) => v);
+
+    let seatsData: Seat[] = [];
+    if (paramId === "new") {
+      seatsData = form.seats.map((seat) => ({
+        time: seat.time,
+        capacity: Number(seat.capacity),
+        reserved: 0,
+      }));
+    } else {
+      const existingMap = new Map(
+        originalSeats.map((s) => [s.time, s.reserved || 0])
+      );
+      const newTimes = form.seats.map((s) => s.time);
+      for (const [time, reserved] of existingMap.entries()) {
+        if (reserved > 0 && !newTimes.includes(time)) {
+          alert(`${time}には既に${reserved}名の申込みがあるため削除できません。`);
+          return;
+        }
+      }
+      for (const seat of form.seats) {
+        const reserved = existingMap.get(seat.time) || 0;
+        if (reserved > seat.capacity) {
+          alert(`${seat.time}には既に${reserved}名の申込みがあるため、${seat.capacity}名に変更できません。`);
+          return;
+        }
+        seatsData.push({
+          time: seat.time,
+          capacity: Number(seat.capacity),
+          reserved,
+        });
+      }
+    }
+
     const baseData = {
       title: form.title,
       venues: venues.length ? venues : null,
@@ -184,11 +219,7 @@ export default function EditEventPage() {
       cost: Number(form.cost),
       date: Timestamp.fromDate(new Date(form.date)),
       description: form.description,
-      seats: form.seats.map((seat) => ({
-        time: seat.time,
-        capacity: Number(seat.capacity),
-        reserved: 0,
-      })),
+      seats: seatsData,
     };
 
     if (paramId === "new") {
