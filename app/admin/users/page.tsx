@@ -31,6 +31,19 @@ interface Reservation {
   companions?: string[];
 }
 
+type Row = {
+  id: string;
+  representative: string;
+  companion: string;
+  createdAt: string;
+  isCompanion: boolean;
+  email?: string;
+  address?: string;
+  guests?: number;
+  eventId?: string;
+  seatTime?: string;
+};
+
 export default function UserListPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [eventTitles, setEventTitles] = useState<Record<string, string>>({});
@@ -141,8 +154,8 @@ export default function UserListPage() {
     setReservations(dataUpdated);
   };
 
-  const displayReservations = reservations.flatMap((r) => {
-    const main = {
+  const displayReservations: Row[] = reservations.flatMap((r) => {
+    const main: Row = {
       id: r.id,
       representative: r.name,
       companion: "",
@@ -154,7 +167,7 @@ export default function UserListPage() {
       createdAt: r.createdAt,
       isCompanion: false,
     };
-    const companions = (r.companions || []).map((name, index) => ({
+    const companions: Row[] = (r.companions || []).map((name, index) => ({
       id: `${r.id}-c${index}`,
       representative: r.name,
       companion: name,
@@ -206,7 +219,7 @@ export default function UserListPage() {
               <td className="border px-2 py-1">{r.isCompanion ? r.companion : ""}</td>
               <td className="border px-2 py-1">
                 {r.isCompanion ? (
-                  ""
+                  <span className="text-gray-400">—</span>
                 ) : editingId === r.id ? (
                   <input
                     className="border p-1 w-full"
@@ -216,7 +229,7 @@ export default function UserListPage() {
                     }
                   />
                 ) : (
-                  r.email
+                  r.email ?? "—"
                 )}
               </td>
               <td className="border px-2 py-1">
