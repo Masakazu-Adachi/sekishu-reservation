@@ -40,6 +40,13 @@ export default function AdminDashboard() {
         </div>
         <div
           className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
+          onClick={() => router.push("/admin2/notification-emails")}
+        >
+          <h2 className="text-xl font-semibold mb-2">📧 通知メール設定</h2>
+          <p>予約通知を受け取るメールアドレスを管理します</p>
+        </div>
+        <div
+          className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
           onClick={() => router.push("/admin2/images")}
         >
           <h2 className="text-xl font-semibold mb-2">🖼 画像管理</h2>

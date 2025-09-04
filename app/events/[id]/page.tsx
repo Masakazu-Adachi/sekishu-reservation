@@ -162,18 +162,24 @@ export default function EventDetailPage() {
       }),
     });
 
-    await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: [
-          "m-adachi@sustirel.com",
-          "kandatoshi1@gmail.com",
-          "linkshori@gmail.com",
-        ],
-        subject: `${event.title} の予約が入りました`,
-        html: `
-          
+    const adminEmailsSnap = await getDoc(
+      doc(db, "settings", "notificationEmails")
+    );
+    const adminEmails =
+      adminEmailsSnap.exists() &&
+      Array.isArray(adminEmailsSnap.data().emails)
+        ? adminEmailsSnap.data().emails
+        : [];
+
+    if (adminEmails.length > 0) {
+      await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: adminEmails,
+          subject: `${event.title} の予約が入りました`,
+          html: `
+
           <div style="font-family:'Noto Serif JP', serif; line-height:1.6;">
             <p>${name}様から予約がありました。</p>
             <ul>
@@ -186,15 +192,18 @@ export default function EventDetailPage() {
               <li><strong>人数:</strong> ${guests}名</li>
               <li><strong>メール:</strong> ${email}</li>
               <li><strong>住所:</strong> ${address || "(未入力)"}</li>
-              <li><strong>同席者:</strong> ${companionNames.join("、") || "(なし)"}</li>
+              <li><strong>同席者:</strong> ${
+                companionNames.join("、") || "(なし)"
+              }</li>
               <li><strong>合計金額:</strong> ${totalCost}円</li>
               <li><strong>自由記述:</strong> ${notes || "(なし)"}</li>
             </ul>
           </div>
 
         `,
-      }),
-    });
+        }),
+      });
+    }
 
     alert("予約が完了しました！確認メールをご確認ください。");
     setName("");
