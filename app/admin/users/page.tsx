@@ -190,13 +190,53 @@ export default function UserListPage() {
     return [main, ...companions];
   });
 
+  const handleDownloadCsv = () => {
+    const headers = [
+      "申込代表者",
+      "同席者",
+      "メールアドレス",
+      "住所",
+      "人数",
+      "イベント名",
+      "時間/席",
+      "予約日時",
+    ];
+    const rows = displayReservations.map((r) => [
+      r.representative,
+      r.companion,
+      r.isCompanion ? "" : r.email ?? "",
+      r.isCompanion ? "" : r.address || "",
+      r.isCompanion ? "" : r.guests,
+      r.isCompanion ? "" : eventTitles[r.eventId || ""] || "",
+      r.isCompanion ? "" : r.seatTime || "",
+      format(new Date(r.createdAt), "yyyy/M/d HH:mm:ss", { locale: ja }),
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row.map((f) => `"${String(f ?? "").replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "reservations.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="p-6 max-w-5xl mx-auto">
       <Link href="/admin" className="text-blue-600 underline block mb-4">
         ← 管理ダッシュボードに戻る
       </Link>
       <h1 className="text-2xl font-bold mb-4">全予約者一覧</h1>
-
+      <button
+        onClick={handleDownloadCsv}
+        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+      >
+        CSVダウンロード
+      </button>
       <table className="w-full border text-sm shadow-md bg-white">
         <thead>
           <tr className="bg-gray-100">
