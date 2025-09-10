@@ -256,6 +256,9 @@ export default function EventDetailPage() {
         </div>
         <div>
           <label className="block mb-1">メールアドレス</label>
+          <p className="text-sm text-gray-600 mb-1">
+            キャリアメール（docomo, au, softbank等）をご利用の場合、迷惑メール設定により確認メールが届かないことがありますため、Gmail等のアドレスをご利用ください。
+          </p>
           <input
             type="email"
             className="border p-2 w-full"
