@@ -24,6 +24,13 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold mb-2">👤 参加者一覧</h2>
           <p>参加者の管理と閲覧</p>
         </div>
+        <div
+          className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
+          onClick={() => router.push("/admin/deleted-users")}
+        >
+          <h2 className="text-xl font-semibold mb-2">🗑️ 削除済み予約</h2>
+          <p>削除された予約の履歴</p>
+        </div>
       </div>
     </main>
   );

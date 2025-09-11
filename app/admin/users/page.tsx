@@ -8,6 +8,7 @@ import {
   getDoc,
   deleteDoc,
   updateDoc,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
@@ -105,7 +106,11 @@ export default function UserListPage() {
       const data = reservationSnap.data();
       if (!data) throw new Error("予約データが不正です");
       const { eventId } = data;
-
+      await addDoc(collection(db, "deletedReservations"), {
+        originalId: id,
+        ...data,
+        deletedAt: new Date().toISOString(),
+      });
       await deleteDoc(reservationRef);
       await updateParticipantCount(eventId);
       await updateSeatReservedCount(eventId);
