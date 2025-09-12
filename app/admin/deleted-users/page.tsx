@@ -10,6 +10,8 @@ interface DeletedReservation {
   id: string;
   name: string;
   email: string;
+  companions?: string[];
+  address?: string;
   eventId: string;
   seatTime: string;
   guests: number;
@@ -57,7 +59,9 @@ export default function DeletedUserListPage() {
         <thead>
           <tr>
             <th className="border px-2 py-1">名前</th>
+            <th className="border px-2 py-1">同席者</th>
             <th className="border px-2 py-1">メール</th>
+            <th className="border px-2 py-1">住所</th>
             <th className="border px-2 py-1">イベント</th>
             <th className="border px-2 py-1">時間/席</th>
             <th className="border px-2 py-1">人数</th>
@@ -69,7 +73,11 @@ export default function DeletedUserListPage() {
           {reservations.map((r) => (
             <tr key={r.id}>
               <td className="border px-2 py-1">{r.name}</td>
+              <td className="border px-2 py-1">
+                {r.companions ? r.companions.join("、") : ""}
+              </td>
               <td className="border px-2 py-1">{r.email}</td>
+              <td className="border px-2 py-1">{r.address || ""}</td>
               <td className="border px-2 py-1">{eventTitles[r.eventId] || ""}</td>
               <td className="border px-2 py-1">{r.seatTime}</td>
               <td className="border px-2 py-1 text-center">{r.guests}</td>
