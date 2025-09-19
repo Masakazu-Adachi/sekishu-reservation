@@ -242,23 +242,24 @@ export default function UserListPage() {
       >
         CSVダウンロード
       </button>
-      <table className="w-full border text-sm shadow-md bg-white">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-2 py-1">申込代表者</th>
-            <th className="border px-2 py-1">同席者</th>
-            <th className="border px-2 py-1">メールアドレス</th>
-            <th className="border px-2 py-1">住所</th>
-            <th className="border px-2 py-1">人数</th>
-            <th className="border px-2 py-1">イベント名</th>
-            <th className="border px-2 py-1">時間/席</th>
-            <th className="border px-2 py-1">予約日時</th>
-            <th className="border px-2 py-1">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayReservations.map((r) => (
-            <tr key={r.id}>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[920px] border text-sm shadow-md bg-white">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border px-2 py-1">申込代表者</th>
+              <th className="border px-2 py-1">同席者</th>
+              <th className="border px-2 py-1">メールアドレス</th>
+              <th className="border px-2 py-1">住所</th>
+              <th className="border px-2 py-1">人数</th>
+              <th className="border px-2 py-1">イベント名</th>
+              <th className="border px-2 py-1">時間/席</th>
+              <th className="border px-2 py-1">予約日時</th>
+              <th className="border px-2 py-1">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayReservations.map((r) => (
+              <tr key={r.id}>
               <td className="border px-2 py-1">
                 {r.isCompanion ? (
                   r.representative
@@ -380,7 +381,7 @@ export default function UserListPage() {
               <td className="border px-2 py-1">
                 {format(new Date(r.createdAt), "yyyy/M/d HH:mm:ss", { locale: ja })}
               </td>
-              <td className="border px-2 py-1 flex gap-1">
+              <td className="border px-2 py-1 flex flex-wrap gap-1">
                 {r.isCompanion ? null : editingId === r.id ? (
                   <>
                     <button
@@ -434,8 +435,9 @@ export default function UserListPage() {
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }
