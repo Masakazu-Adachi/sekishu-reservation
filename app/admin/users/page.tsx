@@ -205,10 +205,20 @@ export default function UserListPage() {
 
     return sortedEventIds.map((eventId) => {
       const eventReservations = reservations.filter((r) => r.eventId === eventId);
+      const seatOrder = eventSeatTimes[eventId] || [];
+      const orderFallback = seatOrder.length + 1;
       const sortedReservations = [...eventReservations].sort((a, b) => {
         if (sortConfig.key === "seatTime") {
           const seatA = (a.seatTime || "").toString();
           const seatB = (b.seatTime || "").toString();
+          const indexA = seatOrder.indexOf(seatA);
+          const indexB = seatOrder.indexOf(seatB);
+          const normalizedA = indexA === -1 ? orderFallback : indexA;
+          const normalizedB = indexB === -1 ? orderFallback : indexB;
+          const orderDiff = normalizedA - normalizedB;
+          if (orderDiff !== 0) {
+            return sortConfig.direction === "asc" ? orderDiff : -orderDiff;
+          }
           const comparison = seatA.localeCompare(seatB, "ja");
           if (comparison !== 0) {
             return sortConfig.direction === "asc" ? comparison : -comparison;
@@ -256,7 +266,14 @@ export default function UserListPage() {
         rows,
       };
     });
-  }, [reservations, eventTitles, sortConfig, editingId, editForm]);
+  }, [
+    reservations,
+    eventTitles,
+    eventSeatTimes,
+    sortConfig,
+    editingId,
+    editForm,
+  ]);
 
   const handleDownloadCsv = () => {
     const headers = [
