@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import type { DragEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import {
@@ -59,6 +60,9 @@ export default function EditEventPage() {
     greeting: "",
   });
   const [originalSeats, setOriginalSeats] = useState<Seat[]>([]);
+  const seatDraggingIndexRef = useRef<number | null>(null);
+  const [dragOverSeatIndex, setDragOverSeatIndex] = useState<number | null>(null);
+  const [isDraggingSeat, setIsDraggingSeat] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -91,88 +95,150 @@ export default function EditEventPage() {
   ) => {
     const { name, value } = e.target;
     if (typeof index === "number") {
-      const updatedSeats = [...form.seats];
-      const seat = { ...updatedSeats[index] };
-      if (name === "seatType") {
-        seat.time =
-          value === "tentative"
-            ? TENTATIVE_LABEL
-            : value === "seat"
-            ? ""
-            : "08:00";
-      }
-      if (name === "hour") {
-        const minute = seat.time.includes(":") ? seat.time.split(":")[1] : "00";
-        seat.time = `${value}:${minute}`;
-      }
-      if (name === "minute") {
-        const hour = seat.time.includes(":") ? seat.time.split(":")[0] : "08";
-        seat.time = `${hour}:${value}`;
-      }
-      if (name === "label") {
-        seat.time = value;
-      }
-      if (name === "capacity") {
-        seat.capacity = Number(value);
-      }
-      updatedSeats[index] = seat;
-      setForm({ ...form, seats: updatedSeats });
+      setForm((prev) => {
+        const updatedSeats = [...prev.seats];
+        const seat = { ...updatedSeats[index] };
+        if (name === "seatType") {
+          seat.time =
+            value === "tentative"
+              ? TENTATIVE_LABEL
+              : value === "seat"
+              ? ""
+              : "08:00";
+        }
+        if (name === "hour") {
+          const minute = seat.time.includes(":") ? seat.time.split(":")[1] : "00";
+          seat.time = `${value}:${minute}`;
+        }
+        if (name === "minute") {
+          const hour = seat.time.includes(":") ? seat.time.split(":")[0] : "08";
+          seat.time = `${hour}:${value}`;
+        }
+        if (name === "label") {
+          seat.time = value;
+        }
+        if (name === "capacity") {
+          seat.capacity = Number(value);
+        }
+        updatedSeats[index] = seat;
+        return { ...prev, seats: updatedSeats };
+      });
     } else {
-      setForm({ ...form, [name]: name === "cost" ? Number(value) : value });
+      setForm((prev) => ({
+        ...prev,
+        [name]: name === "cost" ? Number(value) : value,
+      }));
     }
   };
 
   const handleVenueInput = (index: number) => (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) => {
-    const venues = [...form.venues];
-    venues[index] = e.target.value;
-    setForm({ ...form, venues });
+    const value = e.target.value;
+    setForm((prev) => {
+      const venues = [...prev.venues];
+      venues[index] = value;
+      return { ...prev, venues };
+    });
     e.target.style.height = "auto";
     e.target.style.height = `${e.target.scrollHeight}px`;
   };
 
   const addVenueField = () => {
-    setForm({ ...form, venues: [...form.venues, ""] });
+    setForm((prev) => ({ ...prev, venues: [...prev.venues, ""] }));
   };
 
   const removeVenueField = (index: number) => {
-    const venues = [...form.venues];
-    venues.splice(index, 1);
-    setForm({ ...form, venues: venues.length ? venues : [""] });
+    setForm((prev) => {
+      const venues = [...prev.venues];
+      venues.splice(index, 1);
+      return { ...prev, venues: venues.length ? venues : [""] };
+    });
   };
 
   const handleGreetingChange = (html: string) => {
     setForm((prev) => ({ ...prev, greeting: html }));
   };
 
-  const sortSeats = (seats: Seat[]) =>
-    [...seats].sort((a, b) => {
-      const isTime = (t: string) => /^\d{2}:\d{2}$/.test(t);
-      if (a.time === TENTATIVE_LABEL) return 1;
-      if (b.time === TENTATIVE_LABEL) return -1;
-      const aIsTime = isTime(a.time);
-      const bIsTime = isTime(b.time);
-      if (aIsTime && bIsTime) return a.time.localeCompare(b.time);
-      if (aIsTime) return -1;
-      if (bIsTime) return 1;
-      return a.time.localeCompare(b.time);
-    });
-
   const addSeat = () => {
-    setForm({
-      ...form,
-      seats: sortSeats([
-        ...form.seats,
-        { time: "08:00", capacity: 1, reserved: 0 },
-      ]),
-    });
+    setForm((prev) => ({
+      ...prev,
+      seats: [...prev.seats, { time: "08:00", capacity: 1, reserved: 0 }],
+    }));
   };
 
   const removeSeat = (index: number) => {
-    const updatedSeats = [...form.seats];
-    updatedSeats.splice(index, 1);
-    setForm({ ...form, seats: updatedSeats });
+    setForm((prev) => {
+      const updatedSeats = [...prev.seats];
+      updatedSeats.splice(index, 1);
+      return { ...prev, seats: updatedSeats };
+    });
+  };
+
+  const resetSeatDragState = () => {
+    seatDraggingIndexRef.current = null;
+    setDragOverSeatIndex(null);
+    setIsDraggingSeat(false);
+  };
+
+  const handleSeatDragStart = (index: number) => (e: DragEvent<HTMLButtonElement>) => {
+    seatDraggingIndexRef.current = index;
+    setIsDraggingSeat(true);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleSeatDragEnd = () => {
+    resetSeatDragState();
+  };
+
+  const handleSeatDragOver = (index: number) => (e: DragEvent<HTMLDivElement>) => {
+    if (seatDraggingIndexRef.current === null) return;
+    e.preventDefault();
+    if (dragOverSeatIndex !== index) {
+      setDragOverSeatIndex(index);
+    }
+  };
+
+  const moveSeatToIndex = (targetIndex: number) => {
+    const fromIndex = seatDraggingIndexRef.current;
+    if (fromIndex === null) return;
+    setForm((prev) => {
+      const updatedSeats = [...prev.seats];
+      const [moved] = updatedSeats.splice(fromIndex, 1);
+      let insertIndex = targetIndex;
+      if (fromIndex < targetIndex) {
+        insertIndex = Math.max(targetIndex - 1, 0);
+      }
+      updatedSeats.splice(insertIndex, 0, moved);
+      return { ...prev, seats: updatedSeats };
+    });
+  };
+
+  const handleSeatDrop = (index: number) => (e: DragEvent<HTMLDivElement>) => {
+    if (seatDraggingIndexRef.current === null) return;
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const shouldInsertAfter = e.clientY > rect.top + rect.height / 2;
+    const targetIndex = shouldInsertAfter ? index + 1 : index;
+    const fromIndex = seatDraggingIndexRef.current;
+    if (!shouldInsertAfter && fromIndex === index) {
+      resetSeatDragState();
+      return;
+    }
+    if (shouldInsertAfter && fromIndex === index + 1) {
+      resetSeatDragState();
+      return;
+    }
+    moveSeatToIndex(targetIndex);
+    resetSeatDragState();
+  };
+
+  const handleSeatDropAtEnd = (e: DragEvent<HTMLDivElement>) => {
+    if (seatDraggingIndexRef.current === null) return;
+    e.preventDefault();
+    moveSeatToIndex(form.seats.length);
+    resetSeatDragState();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -354,6 +420,7 @@ export default function EditEventPage() {
 
         <div className="space-y-2">
           <p className="font-semibold">時間枠/席と定員（複数設定可）</p>
+          <p className="text-sm text-gray-500">ドラッグで表示順を並び替えできます。</p>
           {form.seats.map((seat, i) => {
             const [h, m] = seat.time.includes(":") ? seat.time.split(":") : ["08", "00"];
             const seatType = seat.time === TENTATIVE_LABEL
@@ -362,7 +429,24 @@ export default function EditEventPage() {
               ? "time"
               : "seat";
             return (
-              <div key={i} className="flex gap-2 items-center">
+              <div
+                key={i}
+                className={`flex gap-2 items-center rounded border p-2 transition-colors ${
+                  dragOverSeatIndex === i ? "border-blue-400 bg-blue-50" : "border-transparent"
+                }`}
+                onDragOver={handleSeatDragOver(i)}
+                onDrop={handleSeatDrop(i)}
+              >
+                <button
+                  type="button"
+                  className="cursor-move text-gray-500 hover:text-gray-700"
+                  draggable
+                  onDragStart={handleSeatDragStart(i)}
+                  onDragEnd={handleSeatDragEnd}
+                  aria-label="席の並び替え"
+                >
+                  ☰
+                </button>
                 <select
                   name="seatType"
                   value={seatType}
@@ -436,6 +520,18 @@ export default function EditEventPage() {
               </div>
             );
           })}
+          {isDraggingSeat && (
+            <div
+              onDragOver={(e) => {
+                if (seatDraggingIndexRef.current === null) return;
+                e.preventDefault();
+              }}
+              onDrop={handleSeatDropAtEnd}
+              className="border-2 border-dashed border-blue-300 bg-blue-50 text-blue-600 text-center py-2 rounded"
+            >
+              ここにドロップして最後に移動
+            </div>
+          )}
           <button
             type="button"
             onClick={addSeat}
