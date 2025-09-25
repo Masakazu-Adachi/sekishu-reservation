@@ -257,7 +257,14 @@ export default function EventDetailPage() {
         <div>
           <label className="block mb-1">メールアドレス</label>
           <p className="text-sm text-gray-600 mb-1">
-            キャリアメール（docomo, au, softbank等）をご利用の場合、迷惑メール設定により確認メールが届かないことがありますため、Gmail等のアドレスをご利用を推奨しております。予約後に確認メールが届かない場合はsekishuryu-nomuraha@googlegroups.comまでご連絡ください。
+            キャリアメール（docomo, au, softbank等）をご利用の場合、迷惑メール設定により確認メールが届かないことがありますため、Gmail等のアドレスをご利用を推奨しております。予約後に確認メールが届かない場合は
+            <a
+              href="mailto:sekishuryu-nomuraha@googlegroups.com"
+              className="text-blue-600 underline"
+            >
+              sekishuryu-nomuraha@googlegroups.com
+            </a>
+            までご連絡ください。
           </p>
           <input
             type="email"
