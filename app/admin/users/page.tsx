@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   collection,
   getDocs,
@@ -43,9 +43,12 @@ type Row = {
   email?: string;
   address?: string;
   guests?: number;
-  eventId?: string;
+  eventId: string;
   seatTime?: string;
 };
+
+type SortKey = "createdAt" | "seatTime";
+type GroupedReservations = { eventId: string; title: string; rows: Row[] };
 
 export default function UserListPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -61,6 +64,26 @@ export default function UserListPage() {
   });
   const [eventSeatTimes, setEventSeatTimes] = useState<Record<string, string[]>>({});
   const [eventSeatMap, setEventSeatMap] = useState<Record<string, Seat[]>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" }>(
+    {
+      key: "createdAt",
+      direction: "desc",
+    }
+  );
+
+  const handleSort = (key: SortKey) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: key === "createdAt" ? "desc" : "asc" };
+    });
+  };
+
+  const getSortIndicator = (key: SortKey) => {
+    if (sortConfig.key !== key) return "";
+    return sortConfig.direction === "asc" ? "▲" : "▼";
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -168,32 +191,72 @@ export default function UserListPage() {
     const dataUpdated = updated.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Reservation[];
     setReservations(dataUpdated);
   };
-  const displayReservations: Row[] = reservations.flatMap((r) => {
-    const isEditing = editingId === r.id;
-    const main: Row = {
-      id: r.id,
-      representative: isEditing ? editForm.name : r.name,
-      companion: "",
-      email: isEditing ? editForm.email : r.email,
-      address: isEditing ? editForm.address : r.address,
-      guests: isEditing ? editForm.guests : r.guests,
-      eventId: r.eventId,
-      seatTime: isEditing ? editForm.seatTime : r.seatTime,
-      createdAt: r.createdAt,
-      isCompanion: false,
-    };
-    const compArray = isEditing ? editForm.companions : r.companions || [];
-    const companions: Row[] = compArray.map((name, index) => ({
-      id: `${r.id}-c${index}`,
-      parentId: r.id,
-      representative: isEditing ? editForm.name : r.name,
-      companion: name,
-      createdAt: r.createdAt,
-      isCompanion: true,
-      companionIndex: index,
-    }));
-    return [main, ...companions];
-  });
+  const groupedReservations = useMemo<GroupedReservations[]>(() => {
+    if (reservations.length === 0) return [];
+
+    const eventIdSet = Array.from(new Set(reservations.map((r) => r.eventId)));
+    const sortedEventIds = eventIdSet.sort((a, b) => {
+      const titleA = eventTitles[a] || "";
+      const titleB = eventTitles[b] || "";
+      const compared = titleA.localeCompare(titleB, "ja");
+      if (compared !== 0) return compared;
+      return a.localeCompare(b, "ja");
+    });
+
+    return sortedEventIds.map((eventId) => {
+      const eventReservations = reservations.filter((r) => r.eventId === eventId);
+      const sortedReservations = [...eventReservations].sort((a, b) => {
+        if (sortConfig.key === "seatTime") {
+          const seatA = (a.seatTime || "").toString();
+          const seatB = (b.seatTime || "").toString();
+          const comparison = seatA.localeCompare(seatB, "ja");
+          if (comparison !== 0) {
+            return sortConfig.direction === "asc" ? comparison : -comparison;
+          }
+          const createdDiff =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return sortConfig.direction === "asc" ? createdDiff : -createdDiff;
+        }
+
+        const diff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return sortConfig.direction === "asc" ? diff : -diff;
+      });
+
+      const rows: Row[] = sortedReservations.flatMap((r) => {
+        const isEditing = editingId === r.id;
+        const main: Row = {
+          id: r.id,
+          representative: isEditing ? editForm.name : r.name,
+          companion: "",
+          email: isEditing ? editForm.email : r.email,
+          address: isEditing ? editForm.address : r.address,
+          guests: isEditing ? editForm.guests : r.guests,
+          eventId: r.eventId,
+          seatTime: isEditing ? editForm.seatTime : r.seatTime,
+          createdAt: r.createdAt,
+          isCompanion: false,
+        };
+        const compArray = isEditing ? editForm.companions : r.companions || [];
+        const companions: Row[] = compArray.map((name, index) => ({
+          id: `${r.id}-c${index}`,
+          parentId: r.id,
+          representative: isEditing ? editForm.name : r.name,
+          companion: name,
+          createdAt: r.createdAt,
+          isCompanion: true,
+          companionIndex: index,
+          eventId: r.eventId,
+        }));
+        return [main, ...companions];
+      });
+
+      return {
+        eventId,
+        title: eventTitles[eventId] || "(不明なイベント)",
+        rows,
+      };
+    });
+  }, [reservations, eventTitles, sortConfig, editingId, editForm]);
 
   const handleDownloadCsv = () => {
     const headers = [
@@ -206,16 +269,18 @@ export default function UserListPage() {
       "時間/席",
       "予約日時",
     ];
-    const rows = displayReservations.map((r) => [
-      r.representative,
-      r.companion,
-      r.isCompanion ? "" : r.email ?? "",
-      r.isCompanion ? "" : r.address || "",
-      r.isCompanion ? "" : r.guests,
-      r.isCompanion ? "" : eventTitles[r.eventId || ""] || "",
-      r.isCompanion ? "" : r.seatTime || "",
-      format(new Date(r.createdAt), "yyyy/M/d HH:mm:ss", { locale: ja }),
-    ]);
+    const rows = groupedReservations.flatMap((group) =>
+      group.rows.map((r) => [
+        r.representative,
+        r.companion,
+        r.isCompanion ? "" : r.email ?? "",
+        r.isCompanion ? "" : r.address || "",
+        r.isCompanion ? "" : r.guests,
+        r.isCompanion ? "" : group.title,
+        r.isCompanion ? "" : r.seatTime || "",
+        format(new Date(r.createdAt), "yyyy/M/d HH:mm:ss", { locale: ja }),
+      ])
+    );
     const csv = [headers, ...rows]
       .map((row) =>
         row.map((f) => `"${String(f ?? "").replace(/"/g, '""')}"`).join(",")
@@ -242,202 +307,264 @@ export default function UserListPage() {
       >
         CSVダウンロード
       </button>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] border text-sm shadow-md bg-white">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-2 py-1">申込代表者</th>
-              <th className="border px-2 py-1">同席者</th>
-              <th className="border px-2 py-1">メールアドレス</th>
-              <th className="border px-2 py-1">住所</th>
-              <th className="border px-2 py-1">人数</th>
-              <th className="border px-2 py-1">イベント名</th>
-              <th className="border px-2 py-1">時間/席</th>
-              <th className="border px-2 py-1">予約日時</th>
-              <th className="border px-2 py-1">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayReservations.map((r) => (
-              <tr key={r.id}>
-              <td className="border px-2 py-1">
-                {r.isCompanion ? (
-                  r.representative
-                ) : editingId === r.id ? (
-                  <input
-                    className="border p-1 w-full"
-                    value={editForm.name}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, name: e.target.value })
-                    }
-                  />
-                ) : (
-                  r.representative
-                )}
-              </td>
-              <td className="border px-2 py-1">
-                {r.isCompanion ? (
-                  editingId && r.parentId === editingId ? (
-                    <input
-                      className="border p-1 w-full"
-                      value={editForm.companions[r.companionIndex!] || ""}
-                      onChange={(e) => {
-                        const newCompanions = [...editForm.companions];
-                        newCompanions[r.companionIndex!] = e.target.value;
-                        setEditForm({ ...editForm, companions: newCompanions });
-                      }}
-                    />
-                  ) : (
-                    r.companion
-                  )
-                ) : (
-                  ""
-                )}
-              </td>
-              <td className="border px-2 py-1">
-                {r.isCompanion ? (
-                  <span className="text-gray-400">—</span>
-                ) : editingId === r.id ? (
-                  <input
-                    className="border p-1 w-full"
-                    value={editForm.email}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, email: e.target.value })
-                    }
-                  />
-                ) : (
-                  r.email ?? "—"
-                )}
-              </td>
-              <td className="border px-2 py-1">
-                {r.isCompanion ? (
-                  ""
-                ) : editingId === r.id ? (
-                  <input
-                    className="border p-1 w-full"
-                    value={editForm.address}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, address: e.target.value })
-                    }
-                  />
-                ) : (
-                  r.address || ""
-                )}
-              </td>
-              <td className="border px-2 py-1">
-                {r.isCompanion ? (
-                  ""
-                ) : editingId === r.id ? (
-                  <input
-                    type="number"
-                    className="border p-1 w-full"
-                    value={editForm.guests}
-                    onChange={(e) => {
-                      const newGuests = Number(e.target.value);
-                      setEditForm((prev) => {
-                        const guests = newGuests;
-                        const targetLength = Math.max(guests - 1, 0);
-                        let companions = [...prev.companions];
-                        if (companions.length < targetLength) {
-                          companions = companions.concat(
-                            Array(targetLength - companions.length).fill("")
-                          );
-                        } else if (companions.length > targetLength) {
-                          companions = companions.slice(0, targetLength);
-                        }
-                        return { ...prev, guests, companions };
-                      });
-                    }}
-                  />
-                ) : (
-                  r.guests
-                )}
-              </td>
-              <td className="border px-2 py-1">
-                {r.isCompanion ? "" : eventTitles[r.eventId || ""] || ""}
-              </td>
-              <td className="border px-2 py-1">
-                {r.isCompanion ? (
-                  ""
-                ) : editingId === r.id ? (
-                  <select
-                    className="border p-1 w-full"
-                    value={editForm.seatTime}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, seatTime: e.target.value })
-                    }
-                  >
-                    <option value="">時間または席を選択</option>
-                    {(eventSeatTimes[r.eventId || ""] || []).map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  r.seatTime
-                )}
-              </td>
-              <td className="border px-2 py-1">
-                {format(new Date(r.createdAt), "yyyy/M/d HH:mm:ss", { locale: ja })}
-              </td>
-              <td className="border px-2 py-1 flex flex-wrap gap-1">
-                {r.isCompanion ? null : editingId === r.id ? (
-                  <>
-                    <button
-                      onClick={handleEditSubmit}
-                      className="bg-green-600 text-white px-2 py-1 rounded text-sm"
-                    >
-                      保存
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="bg-gray-400 text-white px-2 py-1 rounded text-sm"
-                    >
-                      キャンセル
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        const reservation = reservations.find((res) => res.id === r.id);
-                        const guests = reservation?.guests || 1;
-                        let companions = reservation?.companions || [];
-                        const target = Math.max(guests - 1, 0);
-                        if (companions.length < target) {
-                          companions = companions.concat(Array(target - companions.length).fill(""));
-                        } else if (companions.length > target) {
-                          companions = companions.slice(0, target);
-                        }
-                        setEditingId(r.id);
-                        setEditForm({
-                          name: reservation?.name || "",
-                          email: reservation?.email || "",
-                          address: reservation?.address || "",
-                          guests,
-                          seatTime: reservation?.seatTime || "",
-                          companions,
-                        });
-                      }}
-                      className="bg-yellow-400 text-white px-2 py-1 rounded text-sm"
-                    >
-                      編集
-                    </button>
-                    <button
-                      onClick={() => handleDelete(r.id)}
-                      className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                    >
-                      予約をキャンセル
-                    </button>
-                  </>
-                )}
-              </td>
-            </tr>
-          ))}
-          </tbody>
-        </table>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span className="text-sm text-gray-600">並び替え:</span>
+        <button
+          type="button"
+          onClick={() => handleSort("createdAt")}
+          className={`px-3 py-1 border rounded text-sm flex items-center gap-1 ${
+            sortConfig.key === "createdAt"
+              ? "border-blue-500 text-blue-600 bg-blue-50"
+              : "border-gray-300 text-gray-700"
+          }`}
+        >
+          予約日時
+          <span>{getSortIndicator("createdAt")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSort("seatTime")}
+          className={`px-3 py-1 border rounded text-sm flex items-center gap-1 ${
+            sortConfig.key === "seatTime"
+              ? "border-blue-500 text-blue-600 bg-blue-50"
+              : "border-gray-300 text-gray-700"
+          }`}
+        >
+          時間/席
+          <span>{getSortIndicator("seatTime")}</span>
+        </button>
       </div>
+      {groupedReservations.length === 0 ? (
+        <p className="text-sm text-gray-600">予約データがありません。</p>
+      ) : (
+        <div className="space-y-6">
+          {groupedReservations.map((group) => (
+            <section key={group.eventId} className="border rounded shadow-sm bg-white">
+              <details open>
+                <summary className="cursor-pointer select-none font-semibold px-4 py-2 bg-gray-100">
+                  {group.title}
+                </summary>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[920px] border-t text-sm">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border px-2 py-1">申込代表者</th>
+                        <th className="border px-2 py-1">同席者</th>
+                        <th className="border px-2 py-1">メールアドレス</th>
+                        <th className="border px-2 py-1">住所</th>
+                        <th className="border px-2 py-1">人数</th>
+                        <th className="border px-2 py-1">イベント名</th>
+                        <th className="border px-2 py-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSort("seatTime")}
+                            className="flex items-center gap-1"
+                          >
+                            時間/席
+                            <span>{getSortIndicator("seatTime")}</span>
+                          </button>
+                        </th>
+                        <th className="border px-2 py-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSort("createdAt")}
+                            className="flex items-center gap-1"
+                          >
+                            予約日時
+                            <span>{getSortIndicator("createdAt")}</span>
+                          </button>
+                        </th>
+                        <th className="border px-2 py-1">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.rows.map((r) => (
+                        <tr key={r.id}>
+                          <td className="border px-2 py-1">
+                            {r.isCompanion ? (
+                              r.representative
+                            ) : editingId === r.id ? (
+                              <input
+                                className="border p-1 w-full"
+                                value={editForm.name}
+                                onChange={(e) =>
+                                  setEditForm({ ...editForm, name: e.target.value })
+                                }
+                              />
+                            ) : (
+                              r.representative
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {r.isCompanion ? (
+                              editingId && r.parentId === editingId ? (
+                                <input
+                                  className="border p-1 w-full"
+                                  value={editForm.companions[r.companionIndex!] || ""}
+                                  onChange={(e) => {
+                                    const newCompanions = [...editForm.companions];
+                                    newCompanions[r.companionIndex!] = e.target.value;
+                                    setEditForm({ ...editForm, companions: newCompanions });
+                                  }}
+                                />
+                              ) : (
+                                r.companion
+                              )
+                            ) : (
+                              ""
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {r.isCompanion ? (
+                              <span className="text-gray-400">—</span>
+                            ) : editingId === r.id ? (
+                              <input
+                                className="border p-1 w-full"
+                                value={editForm.email}
+                                onChange={(e) =>
+                                  setEditForm({ ...editForm, email: e.target.value })
+                                }
+                              />
+                            ) : (
+                              r.email ?? "—"
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {r.isCompanion ? (
+                              ""
+                            ) : editingId === r.id ? (
+                              <input
+                                className="border p-1 w-full"
+                                value={editForm.address}
+                                onChange={(e) =>
+                                  setEditForm({ ...editForm, address: e.target.value })
+                                }
+                              />
+                            ) : (
+                              r.address || ""
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {r.isCompanion ? (
+                              ""
+                            ) : editingId === r.id ? (
+                              <input
+                                type="number"
+                                className="border p-1 w-full"
+                                value={editForm.guests}
+                                onChange={(e) => {
+                                  const newGuests = Number(e.target.value);
+                                  setEditForm((prev) => {
+                                    const guests = newGuests;
+                                    const targetLength = Math.max(guests - 1, 0);
+                                    let companions = [...prev.companions];
+                                    if (companions.length < targetLength) {
+                                      companions = companions.concat(
+                                        Array(targetLength - companions.length).fill("")
+                                      );
+                                    } else if (companions.length > targetLength) {
+                                      companions = companions.slice(0, targetLength);
+                                    }
+                                    return { ...prev, guests, companions };
+                                  });
+                                }}
+                              />
+                            ) : (
+                              r.guests
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {r.isCompanion ? "" : group.title}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {r.isCompanion ? (
+                              ""
+                            ) : editingId === r.id ? (
+                              <select
+                                className="border p-1 w-full"
+                                value={editForm.seatTime}
+                                onChange={(e) =>
+                                  setEditForm({ ...editForm, seatTime: e.target.value })
+                                }
+                              >
+                                <option value="">時間または席を選択</option>
+                                {(eventSeatTimes[r.eventId] || []).map((time) => (
+                                  <option key={time} value={time}>
+                                    {time}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              r.seatTime
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            {format(new Date(r.createdAt), "yyyy/M/d HH:mm:ss", { locale: ja })}
+                          </td>
+                          <td className="border px-2 py-1 flex flex-wrap gap-1">
+                            {r.isCompanion ? null : editingId === r.id ? (
+                              <>
+                                <button
+                                  onClick={handleEditSubmit}
+                                  className="bg-green-600 text-white px-2 py-1 rounded text-sm"
+                                >
+                                  保存
+                                </button>
+                                <button
+                                  onClick={() => setEditingId(null)}
+                                  className="bg-gray-400 text-white px-2 py-1 rounded text-sm"
+                                >
+                                  キャンセル
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    const reservation = reservations.find((res) => res.id === r.id);
+                                    const guests = reservation?.guests || 1;
+                                    let companions = reservation?.companions || [];
+                                    const target = Math.max(guests - 1, 0);
+                                    if (companions.length < target) {
+                                      companions = companions.concat(
+                                        Array(target - companions.length).fill("")
+                                      );
+                                    } else if (companions.length > target) {
+                                      companions = companions.slice(0, target);
+                                    }
+                                    setEditingId(r.id);
+                                    setEditForm({
+                                      name: reservation?.name || "",
+                                      email: reservation?.email || "",
+                                      address: reservation?.address || "",
+                                      guests,
+                                      seatTime: reservation?.seatTime || "",
+                                      companions,
+                                    });
+                                  }}
+                                  className="bg-yellow-400 text-white px-2 py-1 rounded text-sm"
+                                >
+                                  編集
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(r.id)}
+                                  className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                                >
+                                  予約をキャンセル
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </section>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
