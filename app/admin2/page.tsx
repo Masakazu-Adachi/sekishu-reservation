@@ -19,6 +19,13 @@ export default function AdminDashboard() {
         </div>
         <div
           className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
+          onClick={() => router.push("/admin2/top-image/preview")}
+        >
+          <h2 className="text-xl font-semibold mb-2">👀 トップ画像プレビュー</h2>
+          <p>お客様向け表示に近いカルーセルを確認します</p>
+        </div>
+        <div
+          className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
           onClick={() => router.push("/admin2/greeting")}
         >
           <h2 className="text-xl font-semibold mb-2">💬 ごあいさつ設定</h2>
