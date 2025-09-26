@@ -78,9 +78,6 @@ export default function TeaHistoryDetailPage() {
           )}
           <h1 className="text-3xl font-bold">{post.title}</h1>
         </header>
-        {galleryImages.length > 0 && (
-          <GalleryCarousel images={galleryImages} autoPlayMs={5000} />
-        )}
         {post.imageUrl && !isUnsafeImageSrc(post.imageUrl) && (
           <div className="relative w-full h-[240px] sm:h-[360px] rounded-2xl overflow-hidden shadow">
             <Image src={post.imageUrl} alt={post.title} fill className="object-cover" />
@@ -89,6 +86,9 @@ export default function TeaHistoryDetailPage() {
         <div className="text-gray-700 leading-relaxed rich-html">
           <RichHtml html={stripBlobImages(html)} autoPlayMs={5000} />
         </div>
+        {galleryImages.length > 0 && (
+          <GalleryCarousel images={galleryImages} autoPlayMs={5000} />
+        )}
       </article>
     </main>
   );
