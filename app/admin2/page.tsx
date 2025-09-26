@@ -33,6 +33,13 @@ export default function AdminDashboard() {
         </div>
         <div
           className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
+          onClick={() => router.push("/admin2/tea-history")}
+        >
+          <h2 className="text-xl font-semibold mb-2">🏮 これまでの茶会</h2>
+          <p>実施日やカルーセル付きの記事を管理します</p>
+        </div>
+        <div
+          className="border rounded p-4 shadow-md hover:bg-gray-50 cursor-pointer bg-white"
           onClick={() => router.push("/admin2/letters")}
         >
           <h2 className="text-xl font-semibold mb-2">✉ お問い合わせ</h2>
