@@ -56,10 +56,17 @@ export interface GreetingLine {
   font: "serif" | "sans" | "mono";
 }
 
+export interface HeroImageSetting {
+  url: string;
+  alt?: string;
+  storagePath?: string;
+}
+
 export interface PublicSiteSettings {
   heroImageUrl?: string;
   heroImageAlt?: string;
   heroImageStoragePath?: string;
+  heroImages?: HeroImageSetting[];
   paragraphs?: string[];
 }
 
