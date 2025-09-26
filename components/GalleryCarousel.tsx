@@ -22,15 +22,19 @@ export default function GalleryCarousel({ images, autoPlayMs = 4000 }: Props) {
     [Autoplay({ delay: autoPlayMs, stopOnMouseEnter: true })]
   );
   const [selected, setSelected] = useState(0);
-  const [failed, setFailed] = useState(true);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (emblaApi) {
-      setFailed(false);
-      const onSelect = () => setSelected(emblaApi.selectedScrollSnap());
-      emblaApi.on("select", onSelect);
-      onSelect();
-    }
+    if (!emblaApi) return;
+
+    setIsReady(true);
+    const onSelect = () => setSelected(emblaApi.selectedScrollSnap());
+    emblaApi.on("select", onSelect);
+    onSelect();
+
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
   }, [emblaApi]);
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
@@ -49,29 +53,29 @@ export default function GalleryCarousel({ images, autoPlayMs = 4000 }: Props) {
     return () => window.removeEventListener("keydown", handler);
   }, [scrollPrev, scrollNext]);
 
-  if (images.length <= 1 || failed) {
+  if (images.length === 0) {
+    return null;
+  }
+
+  if (images.length === 1) {
+    const [img] = images;
+    if (isUnsafeImageSrc(img.src)) return null;
+
     return (
-      <div className="space-y-4 max-w-screen-md">
-        {images.map((img, i) =>
-          isUnsafeImageSrc(img.src) ? null : (
-            <div
-              key={i}
-              className="relative w-full h-[240px] sm:h-[360px] rounded-2xl shadow ring-1 ring-black/5 overflow-hidden"
-            >
-              <Image
-                src={img.src}
-                alt={img.alt ?? ""}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  e.currentTarget.src =
-                    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-                  e.currentTarget.alt = "読み込めませんでした";
-                }}
-              />
-            </div>
-          )
-        )}
+      <div className="max-w-screen-md">
+        <div className="relative w-full h-[240px] sm:h-[360px] rounded-2xl shadow ring-1 ring-black/5 overflow-hidden">
+          <Image
+            src={img.src}
+            alt={img.alt ?? ""}
+            fill
+            className="object-cover"
+            onError={(e) => {
+              e.currentTarget.src =
+                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+              e.currentTarget.alt = "読み込めませんでした";
+            }}
+          />
+        </div>
       </div>
     );
   }
@@ -103,32 +107,36 @@ export default function GalleryCarousel({ images, autoPlayMs = 4000 }: Props) {
           ))}
         </div>
       </div>
-      <button
-        type="button"
-        onClick={scrollPrev}
-        className={`${buttonCls} left-2`}
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        onClick={scrollNext}
-        className={`${buttonCls} right-2`}
-      >
-        ›
-      </button>
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
-        {images.map((_, i) => (
+      {isReady && (
+        <>
           <button
-            key={i}
             type="button"
-            onClick={() => scrollTo(i)}
-            className={`w-2 h-2 rounded-full bg-white ${
-              selected === i ? "opacity-100" : "opacity-40"
-            }`}
-          />
-        ))}
-      </div>
+            onClick={scrollPrev}
+            className={`${buttonCls} left-2`}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={scrollNext}
+            className={`${buttonCls} right-2`}
+          >
+            ›
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => scrollTo(i)}
+                className={`w-2 h-2 rounded-full bg-white ${
+                  selected === i ? "opacity-100" : "opacity-40"
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
