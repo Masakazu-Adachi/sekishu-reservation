@@ -16,7 +16,7 @@ interface Props {
   autoPlayMs?: number;
 }
 
-export default function GalleryCarousel({ images, autoPlayMs = 5000 }: Props) {
+export default function GalleryCarousel({ images, autoPlayMs = 3000 }: Props) {
   const autoplay = useMemo(
     () =>
       Autoplay({
