@@ -29,6 +29,47 @@ interface Props {
   collectionName: string;
   heading: string;
   storagePath: string;
+  enableEventDate?: boolean;
+  enableGallery?: boolean;
+  enableManualOrder?: boolean;
+  galleryStoragePath?: string;
+}
+
+type GalleryExistingItem = { id: string; type: "existing"; url: string };
+type GalleryNewItem = {
+  id: string;
+  type: "new";
+  file: File;
+  preview: string;
+};
+
+type GalleryItem = GalleryExistingItem | GalleryNewItem;
+
+type ExtendedBlogPost = BlogPost & {
+  eventDate?: string | null;
+  galleryImages?: string[];
+  displayOrder?: number;
+};
+
+function createId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
+}
+
+function revokeGalleryPreview(item: GalleryItem) {
+  if (item.type === "new") {
+    URL.revokeObjectURL(item.preview);
+  }
+}
+
+function formatDisplayDate(value?: string | null) {
+  if (!value) return null;
+  const hasTime = value.includes("T");
+  const date = new Date(hasTime ? value : `${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("ja-JP");
 }
 
 const IMAGE_MAX_SIZE = 10 * 1024 * 1024;
@@ -93,8 +134,16 @@ function isPlainJSON(v: unknown): boolean {
 }
 
 
-export default function AdminBlogEditor({ collectionName, heading, storagePath }: Props) {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
+export default function AdminBlogEditor({
+  collectionName,
+  heading,
+  storagePath,
+  enableEventDate = false,
+  enableGallery = false,
+  enableManualOrder = false,
+  galleryStoragePath,
+}: Props) {
+  const [posts, setPosts] = useState<ExtendedBlogPost[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -103,9 +152,16 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const inputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const quillRef = useRef<QuillClientHandle | null>(null);
   const [isQuillReady, setIsQuillReady] = useState(false); // 登録完了フラグ
   const [toast, setToast] = useState<string | null>(null);
+  const [eventDate, setEventDate] = useState("");
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const resolvedGalleryPath = useMemo(
+    () => galleryStoragePath ?? `${storagePath}/gallery`,
+    [galleryStoragePath, storagePath]
+  );
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -115,6 +171,15 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   const uploadingRef = useRef(uploading);
   const showToastRef = useRef(showToast);
   const isPastingRef = useRef(false);
+  const galleryItemsRef = useRef<GalleryItem[]>([]);
+  useEffect(() => {
+    galleryItemsRef.current = galleryItems;
+  }, [galleryItems]);
+  useEffect(() => {
+    return () => {
+      galleryItemsRef.current.forEach(revokeGalleryPreview);
+    };
+  }, []);
   useEffect(() => {
     uploadingRef.current = uploading;
   }, [uploading]);
@@ -429,15 +494,68 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
     [debouncedSave]
   );
 
-  const fetchPosts = async () => {
-    const q = query(
-      collection(db, collectionName),
-      orderBy("createdAt", sortOrder)
-    );
+  const addGalleryFiles = useCallback(
+    (fileList: FileList | null) => {
+      if (!enableGallery || !fileList) return;
+      const items: GalleryItem[] = [];
+      Array.from(fileList).forEach((f) => {
+        if (!validateImage(f)) return;
+        const preview = URL.createObjectURL(f);
+        items.push({ id: createId(), type: "new", file: f, preview });
+      });
+      if (!items.length) return;
+      setGalleryItems((prev) => [...prev, ...items]);
+    },
+    [enableGallery]
+  );
+
+  const removeGalleryItem = useCallback((id: string) => {
+    setGalleryItems((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) revokeGalleryPreview(target);
+      return prev.filter((item) => item.id !== id);
+    });
+  }, []);
+
+  const moveGalleryItem = useCallback((id: string, dir: "up" | "down") => {
+    setGalleryItems((prev) => {
+      const index = prev.findIndex((item) => item.id === id);
+      if (index === -1) return prev;
+      const targetIndex = dir === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIndex];
+      next[targetIndex] = temp;
+      return next;
+    });
+  }, []);
+
+  const clearGalleryItems = useCallback(() => {
+    setGalleryItems((prev) => {
+      prev.forEach(revokeGalleryPreview);
+      return [];
+    });
+  }, []);
+
+  const fetchPosts = useCallback(async () => {
+    const orderField = enableManualOrder ? "displayOrder" : "createdAt";
+    const orderDirection = enableManualOrder ? "asc" : sortOrder;
+    const q = query(collection(db, collectionName), orderBy(orderField, orderDirection));
     const snapshot = await getDocs(q);
     const data = await Promise.all(
-      snapshot.docs.map(async (d) => {
-        const p = { id: d.id, ...(d.data() as Omit<BlogPost, "id">) };
+      snapshot.docs.map(async (d, idx) => {
+        const raw = d.data() as Omit<ExtendedBlogPost, "id">;
+        const p: ExtendedBlogPost = {
+          id: d.id,
+          ...raw,
+          displayOrder:
+            typeof raw.displayOrder === "number"
+              ? raw.displayOrder
+              : enableManualOrder
+              ? idx
+              : raw.displayOrder,
+        };
         if (!p.body && p.bodyHtmlUrl) {
           try {
             p.body = preserveLeadingSpaces(
@@ -453,19 +571,64 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         return p;
       })
     );
+    if (enableManualOrder) {
+      data.sort((a, b) => {
+        const ao = typeof a.displayOrder === "number" ? a.displayOrder : 0;
+        const bo = typeof b.displayOrder === "number" ? b.displayOrder : 0;
+        if (ao === bo) {
+          return (b.createdAt ?? "").localeCompare(a.createdAt ?? "");
+        }
+        return ao - bo;
+      });
+    }
     setPosts(data);
-  };
+  }, [collectionName, enableManualOrder, sortOrder]);
+
+  const movePostOrder = useCallback(
+    async (id: string, dir: "up" | "down") => {
+      if (!enableManualOrder) return;
+      const index = posts.findIndex((p) => p.id === id);
+      if (index === -1) return;
+      const targetIndex = dir === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= posts.length) return;
+      const current = posts[index];
+      const target = posts[targetIndex];
+      const currentOrder =
+        typeof current.displayOrder === "number" ? current.displayOrder : index;
+      const targetOrder =
+        typeof target.displayOrder === "number" ? target.displayOrder : targetIndex;
+      try {
+        await Promise.all([
+          updateDoc(doc(db, collectionName, current.id), {
+            displayOrder: targetOrder,
+          }),
+          updateDoc(doc(db, collectionName, target.id), {
+            displayOrder: currentOrder,
+          }),
+        ]);
+        await fetchPosts();
+      } catch (err) {
+        console.error("failed to reorder posts", err);
+        showToast("並び替えに失敗しました");
+      }
+    },
+    [collectionName, enableManualOrder, fetchPosts, posts, showToast]
+  );
 
   useEffect(() => {
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortOrder]);
+  }, [fetchPosts]);
 
   const handleSubmit = async () => {
+    if (enableEventDate && !eventDate) {
+      alert("実施日を入力してください");
+      return;
+    }
     setUploading(true);
     let imageUrl = "";
     let deltaSize = 0;
     let htmlSize = 0;
+    const gallerySnapshot = enableGallery ? [...galleryItems] : [];
     try {
       if (file) {
         imageUrl = await uploadImage(
@@ -504,13 +667,56 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         }
       }
       const images = Array.from(new Set(used));
-      const data = {
+      let galleryImages: string[] = [];
+      if (enableGallery) {
+        galleryImages = [];
+        for (const item of gallerySnapshot) {
+          if (item.type === "existing") {
+            if (item.url) galleryImages.push(item.url);
+            continue;
+          }
+          try {
+            const { url } = await uploadImageToStorage(item.file, resolvedGalleryPath, {
+              uploadedBy: "admin",
+            });
+            galleryImages.push(url);
+          } catch (err) {
+            console.error(err);
+            showToast("カルーセル画像のアップロードに失敗しました");
+            throw err;
+          } finally {
+            revokeGalleryPreview(item);
+          }
+        }
+      }
+      const data: Record<string, unknown> = {
         title,
         bodyDelta,
         imageUrl,
         images,
         updatedAt: serverTimestamp(),
       };
+      if (enableEventDate) {
+        data.eventDate = eventDate || null;
+      }
+      if (enableGallery) {
+        data.galleryImages = galleryImages;
+      }
+      if (enableManualOrder) {
+        const current = editingId
+          ? posts.find((p) => p.id === editingId)?.displayOrder
+          : undefined;
+        const nextOrder =
+          typeof current === "number"
+            ? current
+            : posts.reduce((max, p) =>
+                Math.max(
+                  max,
+                  typeof p.displayOrder === "number" ? p.displayOrder : max
+                ),
+              -1) + 1;
+        data.displayOrder = nextOrder;
+      }
       try {
         if (editingId) {
           const original = posts.find(p => p.id === editingId);
@@ -535,6 +741,10 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
       setFile(null);
       setProgress(0);
       setEditingId(null);
+      setEventDate("");
+      clearGalleryItems();
+      if (inputRef.current) inputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
       await fetchPosts();
       alert(editingId ? "投稿を更新しました" : "投稿を保存しました");
     } catch (err) {
@@ -548,17 +758,19 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">{heading}</h1>
-      <div className="mb-4 flex items-center space-x-2">
-        <label className="text-sm">並び順:</label>
-        <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-          className="border p-1 text-sm"
-        >
-          <option value="desc">新しい順</option>
-          <option value="asc">古い順</option>
-        </select>
-      </div>
+      {!enableManualOrder && (
+        <div className="mb-4 flex items-center space-x-2">
+          <label className="text-sm">並び順:</label>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+            className="border p-1 text-sm"
+          >
+            <option value="desc">新しい順</option>
+            <option value="asc">古い順</option>
+          </select>
+        </div>
+      )}
       <div className="mb-4">
         <input
           type="text"
@@ -567,6 +779,14 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           placeholder="タイトル"
           className="border p-2 w-full mb-2"
         />
+        {enableEventDate && (
+          <input
+            type="date"
+            value={eventDate}
+            onChange={(e) => setEventDate(e.target.value)}
+            className="border p-2 w-full mb-2"
+          />
+        )}
         {/* 登録完了まではエディタを描画しない（初期化順序の競合を避ける） */}
         {isQuillReady && (
           <QuillClientEditor
@@ -594,6 +814,77 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
           }}
           className="mb-2"
         />
+        {enableGallery && (
+          <div className="mb-4 space-y-2">
+            <p className="text-sm text-gray-600">カルーセル用の画像を設定します（ドラッグ＆ドロップで本文にも画像を追加できます）。</p>
+            <div className="space-y-2">
+              {galleryItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-2 border rounded p-2 bg-gray-50"
+                >
+                  <div className="relative w-20 h-14 flex-shrink-0 overflow-hidden rounded">
+                    {item.type === "existing" ? (
+                      <Image
+                        src={item.url}
+                        alt=""
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <Image
+                        src={item.preview}
+                        alt={item.file.name}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 text-sm break-all">
+                    {item.type === "existing" ? item.url : item.file.name}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600"
+                      onClick={() => moveGalleryItem(item.id, "up")}
+                      disabled={index === 0}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs text-blue-600"
+                      onClick={() => moveGalleryItem(item.id, "down")}
+                      disabled={index === galleryItems.length - 1}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs text-red-600"
+                      onClick={() => removeGalleryItem(item.id)}
+                    >
+                      削除
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              ref={galleryInputRef}
+              onChange={(e) => {
+                addGalleryFiles(e.target.files);
+                if (e.target) e.target.value = "";
+              }}
+              className=""
+            />
+          </div>
+        )}
         <div className="flex items-center space-x-2">
           <button
             onClick={handleSubmit}
@@ -615,7 +906,10 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
                 setTitle("");
                 setBody("");
                 setFile(null);
+                setEventDate("");
+                clearGalleryItems();
                 if (inputRef.current) inputRef.current.value = "";
+                if (galleryInputRef.current) galleryInputRef.current.value = "";
               }}
             >
               キャンセル
@@ -624,71 +918,133 @@ export default function AdminBlogEditor({ collectionName, heading, storagePath }
         </div>
       </div>
       <div className="space-y-4">
-        {posts.map((post) => (
-          <div key={post.id} className="border p-3 rounded bg-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="font-semibold">{post.title}</h2>
-                <p className="text-sm text-gray-500 mb-2">
-                  {new Date(post.createdAt).toLocaleDateString("ja-JP")}
-                </p>
+        {posts.map((post, index) => {
+          const orderLabel =
+            typeof post.displayOrder === "number" ? post.displayOrder + 1 : null;
+          const createdLabel = formatDisplayDate(post.createdAt) || "-";
+          const eventLabel = formatDisplayDate(post.eventDate) || "未設定";
+          return (
+            <div key={post.id} className="border p-3 rounded bg-white">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <h2 className="font-semibold">{post.title}</h2>
+                  <div className="text-xs text-gray-500 space-y-1 mb-2">
+                    <p>作成日: {createdLabel}</p>
+                    {enableEventDate && <p>実施日: {eventLabel}</p>}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  {enableManualOrder && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        表示順:{orderLabel != null ? ` ${orderLabel}` : " -"}
+                      </span>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          className="text-xs text-blue-600"
+                          onClick={() => movePostOrder(post.id, "up")}
+                          disabled={index === 0}
+                        >
+                          上へ
+                        </button>
+                        <button
+                          type="button"
+                          className="text-xs text-blue-600"
+                          onClick={() => movePostOrder(post.id, "down")}
+                          disabled={index === posts.length - 1}
+                        >
+                          下へ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-x-2">
+                    <button
+                      className="text-xs text-red-600"
+                      onClick={async () => {
+                        if (confirm("削除してよろしいですか？")) {
+                          await deleteDoc(doc(db, collectionName, post.id));
+                          await fetchPosts();
+                        }
+                      }}
+                    >
+                      削除
+                    </button>
+                    <button
+                      className="text-xs text-blue-600"
+                      onClick={async () => {
+                        setEditingId(post.id);
+                        setTitle(post.title);
+                        if (enableEventDate) {
+                          setEventDate(post.eventDate ? post.eventDate.slice(0, 10) : "");
+                        }
+                        if (enableGallery) {
+                          setGalleryItems((prev) => {
+                            prev.forEach(revokeGalleryPreview);
+                            return (post.galleryImages ?? []).map((url) => ({
+                              id: createId(),
+                              type: "existing",
+                              url,
+                            }));
+                          });
+                        }
+                        if (post.bodyDelta) {
+                          setBody(preserveLeadingSpaces(deltaToHtml(post.bodyDelta)));
+                        } else if (post.bodyHtmlUrl) {
+                          try {
+                            setBody(
+                              preserveLeadingSpaces(
+                                await (await fetch(post.bodyHtmlUrl)).text()
+                              )
+                            );
+                          } catch {
+                            setBody(preserveLeadingSpaces(post.body || ""));
+                          }
+                        } else {
+                          setBody(preserveLeadingSpaces(post.body || ""));
+                        }
+                        if (inputRef.current) inputRef.current.value = "";
+                        if (galleryInputRef.current) galleryInputRef.current.value = "";
+                      }}
+                    >
+                      編集
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="space-x-2">
-                <button
-                  className="text-xs text-red-600"
-                  onClick={async () => {
-                    if (confirm("削除してよろしいですか？")) {
-                      await deleteDoc(doc(db, collectionName, post.id));
-                      fetchPosts();
-                    }
-                  }}
-                >
-                  削除
-                </button>
-                <button
-                  className="text-xs text-blue-600"
-                  onClick={async () => {
-                    setEditingId(post.id);
-                    setTitle(post.title);
-                    if (post.bodyDelta) {
-                      setBody(preserveLeadingSpaces(deltaToHtml(post.bodyDelta)));
-                    } else if (post.bodyHtmlUrl) {
-                      try {
-                        setBody(
-                          preserveLeadingSpaces(
-                            await (await fetch(post.bodyHtmlUrl)).text()
-                          )
-                        );
-                      } catch {
-                        setBody(preserveLeadingSpaces(post.body || ""));
-                      }
-                    } else {
-                      setBody(preserveLeadingSpaces(post.body || ""));
-                    }
-                    if (inputRef.current) inputRef.current.value = "";
-                  }}
-                >
-                  編集
-                </button>
-              </div>
-            </div>
-            {post.imageUrl && !isUnsafeImageSrc(post.imageUrl) && (
-              <Image
-                src={post.imageUrl}
-                alt=""
-                width={800}
-                height={600}
-                className="mb-2 w-full h-auto rounded"
+              {post.imageUrl && !isUnsafeImageSrc(post.imageUrl) && (
+                <Image
+                  src={post.imageUrl}
+                  alt=""
+                  width={800}
+                  height={600}
+                  className="mb-2 w-full h-auto rounded"
+                />
+              )}
+              {enableGallery && post.galleryImages && post.galleryImages.length > 0 && (
+                <div className="mt-2 flex gap-2 overflow-x-auto">
+                  {post.galleryImages.map((url, i) =>
+                    isUnsafeImageSrc(url) ? null : (
+                      <div
+                        key={`${post.id}-gallery-${i}`}
+                        className="relative w-24 h-16 flex-shrink-0 rounded overflow-hidden"
+                      >
+                        <Image src={url} alt="" fill className="object-cover" />
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+              <div
+                className="text-sm"
+                dangerouslySetInnerHTML={{
+                  __html: stripBlobImages(post.body || ""),
+                }}
               />
-            )}
-            <div
-              className="text-sm"
-              dangerouslySetInnerHTML={{
-                __html: stripBlobImages(post.body || ""),
-              }}
-            />
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
       {toast && (
         <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded">

@@ -72,4 +72,7 @@ export interface BlogPost {
   createdAt: string;
   imageUrl?: string;
   images?: string[];
+  eventDate?: string | null;
+  galleryImages?: string[];
+  displayOrder?: number;
 }
