@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { BlogPost } from "@/types";
@@ -12,8 +12,23 @@ interface Props {
   href: string;
 }
 
+function formatDate(value?: string | null) {
+  if (!value) return "";
+  const hasTime = value.includes("T");
+  const date = new Date(hasTime ? value : `${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("ja-JP");
+}
+
 export default function BlogCard({ post, href }: Props) {
-  const date = new Date(post.createdAt).toLocaleDateString("ja-JP");
+  const dateLabel = useMemo(() => {
+    const eventDate = formatDate(post.eventDate ?? undefined);
+    if (eventDate) {
+      return `実施日: ${eventDate}`;
+    }
+    const created = formatDate(post.createdAt);
+    return created ? created : "";
+  }, [post.createdAt, post.eventDate]);
   const [preview, setPreview] = useState("");
 
   useEffect(() => {
@@ -55,7 +70,9 @@ export default function BlogCard({ post, href }: Props) {
       <div className="p-6 font-serif">
         <h2 className="text-2xl font-bold mb-2">{post.title}</h2>
         <p className="text-gray-700">{preview}</p>
-        <p className="text-right text-sm text-gray-500 mt-4">{date}</p>
+        {dateLabel && (
+          <p className="text-right text-sm text-gray-500 mt-4">{dateLabel}</p>
+        )}
       </div>
     </Link>
   );
