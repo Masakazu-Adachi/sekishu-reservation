@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
@@ -16,11 +16,18 @@ interface Props {
   autoPlayMs?: number;
 }
 
-export default function GalleryCarousel({ images, autoPlayMs = 4000 }: Props) {
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true },
-    [Autoplay({ delay: autoPlayMs, stopOnMouseEnter: true })]
+export default function GalleryCarousel({ images, autoPlayMs = 3000 }: Props) {
+  const autoplay = useMemo(
+    () =>
+      Autoplay({
+        delay: autoPlayMs,
+        stopOnMouseEnter: true,
+        stopOnInteraction: false,
+      }),
+    [autoPlayMs]
   );
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [autoplay]);
   const [selected, setSelected] = useState(0);
   const [isReady, setIsReady] = useState(false);
 
