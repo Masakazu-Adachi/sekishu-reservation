@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import EnsureAdminCookie from "@/components/EnsureAdminCookie";
+import PreserveScrollOnPaste from "@/components/PreserveScrollOnPaste";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,6 +9,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       style={{ colorScheme: "light" }}
     >
       <EnsureAdminCookie />
+      <PreserveScrollOnPaste />
       {children}
     </div>
   );
