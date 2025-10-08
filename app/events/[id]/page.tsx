@@ -56,7 +56,7 @@ export default function EventDetailPage() {
   const handleOpenConfirmation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!event) return;
-    if ((event.seats?.length || 0) > 0 && !selectedTime) return;
+    if ((event.seats?.length || 0) > 0 && guests > 0 && !selectedTime) return;
     if (email !== confirmEmail) {
       alert("メールアドレスが一致しません");
       return;
@@ -66,38 +66,37 @@ export default function EventDetailPage() {
 
   const handleSubmit = async () => {
     if (!event) return;
-    if ((event.seats?.length || 0) > 0 && !selectedTime) return;
+    if ((event.seats?.length || 0) > 0 && guests > 0 && !selectedTime) return;
     if (email !== confirmEmail) {
       alert("メールアドレスが一致しません");
       return;
     }
     setIsSubmitting(true);
     try {
+      if (event.seats && event.seats.length > 0 && guests > 0) {
+        const seat = (event.seats as Seat[]).find((s) => s.time === selectedTime);
+        if (!seat) {
+          alert("選択された時間枠または席が無効です");
+          return;
+        }
 
-    const seat = (event.seats as Seat[]).find((s) => s.time === selectedTime);
-    if (event.seats && event.seats.length > 0) {
-      if (!seat) {
-        alert("選択された時間枠または席が無効です");
-        return;
+        const reservationSnapshot = await getDocs(
+          query(
+            collection(db, "reservations"),
+            where("eventId", "==", event.id),
+            where("seatTime", "==", selectedTime)
+          )
+        );
+        const reservedCount = reservationSnapshot.docs.reduce(
+          (total, doc) => total + (doc.data().guests || 0),
+          0
+        );
+
+        if (reservedCount + guests > seat.capacity) {
+          alert(`定員(${seat.capacity}名)を超えています。現在の合計: ${reservedCount + guests}名`);
+          return;
+        }
       }
-
-      const reservationSnapshot = await getDocs(
-        query(
-          collection(db, "reservations"),
-          where("eventId", "==", event.id),
-          where("seatTime", "==", selectedTime)
-        )
-      );
-      const reservedCount = reservationSnapshot.docs.reduce(
-        (total, doc) => total + (doc.data().guests || 0),
-        0
-      );
-
-      if (reservedCount + guests > seat.capacity) {
-        alert(`定員(${seat.capacity}名)を超えています。現在の合計: ${reservedCount + guests}名`);
-        return;
-      }
-    }
 
     const duplicateCheck = await getDocs(
       query(
@@ -304,9 +303,13 @@ export default function EventDetailPage() {
               setCompanionNames((prev) =>
                 Array.from({ length: Math.max(count - 1, 0) }, (_, i) => prev[i] || "")
               );
+              if (count === 0) {
+                setSelectedTime("");
+              }
             }}
             required
           >
+            <option value={0}>0名</option>
             {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
               <option key={num} value={num}>
                 {num}名
@@ -336,14 +339,14 @@ export default function EventDetailPage() {
             </p>
           </div>
         )}
-        {event.seats && event.seats.length > 0 && (
+        {event.seats && event.seats.length > 0 && guests > 0 && (
           <div>
             <label className="block mb-1">時間枠/席選択</label>
             <select
               className="border p-2 w-full"
               value={selectedTime}
               onChange={(e) => setSelectedTime(e.target.value)}
-              required
+              required={guests > 0}
             >
               <option value="">時間または席を選択</option>
               {(event.seats as Seat[]).map((seat) => (
