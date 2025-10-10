@@ -95,7 +95,7 @@ export default function EventsPage() {
                     {event.participants}/{event.capacity}人
                   </span>
                 </p>
-                <p className="mb-4">{event.description}</p>
+                <p className="mb-4 whitespace-pre-line">{event.description}</p>
                 <Link href={`/events/${event.id}`}>
                   <button className="w-32 mx-auto block bg-[#C1A46F] hover:bg-[#A88C5A] text-white py-2 rounded shadow transition-colors font-serif">
                     予約する
