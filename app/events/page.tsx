@@ -80,9 +80,22 @@ export default function EventsPage() {
             >
               <div>
                 <h2 className="text-xl font-bold mb-2">{event.title}</h2>
-                <p className="mb-1 font-semibold">
-                  会場: <span className="font-normal">{event.venue}</span>
-                </p>
+                {event.venues && event.venues.length > 0 ? (
+                  <div className="mb-1 font-semibold">
+                    会場:
+                    <div className="mt-1 space-y-1 font-normal">
+                      {event.venues.map((venueLine) => (
+                        <div key={venueLine} className="whitespace-pre-wrap">
+                          {venueLine}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mb-1 font-semibold">
+                    会場: <span className="font-normal">{event.venue}</span>
+                  </p>
+                )}
                 <p className="mb-1 font-semibold">
                   日時: <span className="font-normal">{event.date}</span>
                 </p>
