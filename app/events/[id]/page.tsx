@@ -48,7 +48,11 @@ export default function EventDetailPage() {
       ? venues.map((venue) => venue.trim()).filter((venue) => venue)
       : [];
     if (!list.length) return "(未設定)";
-    return list.map((venue) => escapeHtml(venue)).join("<br/>");
+    return list
+      .map((venue) =>
+        escapeHtml(venue.replace(/\r\n?/g, "\n")).replace(/\n/g, "<br/>")
+      )
+      .join("<br/>");
   };
 
   useEffect(() => {
