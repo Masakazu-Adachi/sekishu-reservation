@@ -19,6 +19,7 @@ import type { Event, Seat } from "@/types";
 import { stripBlobImages } from "@/utils/url";
 import { stripMetaLines } from "@/lib/stripMetaLines";
 import { preserveLeadingSpaces } from "@/lib/preserveLeadingSpaces";
+import { ensureLineBreaks } from "@/lib/ensureLineBreaks";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -237,7 +238,9 @@ export default function EventDetailPage() {
         <div
           className="greeting-content mb-4 greeting-html"
           dangerouslySetInnerHTML={{
-            __html: stripBlobImages(stripMetaLines(event.greeting)),
+            __html: ensureLineBreaks(
+              stripBlobImages(stripMetaLines(event.greeting))
+            ),
           }}
         />
       )}
