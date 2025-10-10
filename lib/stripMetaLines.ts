@@ -5,35 +5,43 @@ export function stripMetaLines(html: string): string {
 
   // 正規化（全角コロン対応）
   const labels = ["会場", "日付", "説明", "備考"];
-  const labelRe = labels.join("|"); // 会場|日付|説明|備考
-
   let out = html;
 
-  // <p>会場: ...</p> / <p>会場：...</p> の行ごと削除（改行や空白にも強め）
-  out = out.replace(
-    new RegExp(
-      String.raw`<p[^>]*>\s*(?:${labelRe})\s*[:：][\s\S]*?<\/p>`,
-      "gi"
-    ),
-    ""
-  );
+  const shouldStrip = (text: string) => {
+    if (!text) return false;
+    const normalized = text
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\s+/g, "")
+      .trim();
+    return labels.some((label) =>
+      normalized === label ||
+      normalized.startsWith(`${label}：`) ||
+      normalized.startsWith(`${label}:`)
+    );
+  };
 
-  // <li>会場: ...</li> などの箇条書き対応（必要なら）
-  out = out.replace(
-    new RegExp(
-      String.raw`<li[^>]*>\s*(?:${labelRe})\s*[:：][\s\S]*?<\/li>`,
+  const stripBlock = (html: string, tag: string) => {
+    const pattern = new RegExp(
+      `<${tag}[^>]*>[\\s\\S]*?<\\/${tag}>`,
       "gi"
-    ),
-    ""
-  );
+    );
+    return html.replace(pattern, (match) => {
+      const text = match.replace(/<[^>]+>/g, "");
+      return shouldStrip(text) ? "" : match;
+    });
+  };
+
+  out = stripBlock(out, "p");
+  out = stripBlock(out, "li");
 
   // <dt>会場</dt><dd>…</dd> の定義リスト対応（ペアごと削除）
   out = out.replace(
-    new RegExp(
-      String.raw`<dt[^>]*>\s*(?:${labelRe})\s*<\/dt>\s*<dd[^>]*>[\s\S]*?<\/dd>`,
-      "gi"
-    ),
-    ""
+    new RegExp(String.raw`<dt[^>]*>[\s\S]*?<\/dt>\s*<dd[^>]*>[\s\S]*?<\/dd>`, "gi"),
+    (match) => {
+      const dtMatch = match.match(/<dt[^>]*>([\s\S]*?)<\/dt>/i);
+      const dtText = dtMatch ? dtMatch[1].replace(/<[^>]+>/g, "") : "";
+      return shouldStrip(dtText) ? "" : match;
+    }
   );
 
   return out;
