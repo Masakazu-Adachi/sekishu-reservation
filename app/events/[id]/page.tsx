@@ -35,6 +35,22 @@ export default function EventDetailPage() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const escapeHtml = (unsafe: string) =>
+    unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  const formatVenuesForEmail = (venues?: string[] | null) => {
+    const list = Array.isArray(venues)
+      ? venues.map((venue) => venue.trim()).filter((venue) => venue)
+      : [];
+    if (!list.length) return "(未設定)";
+    return list.map((venue) => escapeHtml(venue)).join("<br/>");
+  };
+
   useEffect(() => {
     const fetchEvent = async () => {
       if (!id) return;
@@ -113,6 +129,7 @@ export default function EventDetailPage() {
 
     const password = nanoid(8);
     const totalCost = (event.cost || 0) * guests;
+    const venueHtmlForEmail = formatVenuesForEmail(event.venues);
 
     await addDoc(collection(db, "reservations"), {
       name,
@@ -148,7 +165,7 @@ export default function EventDetailPage() {
             </p>
             <hr/>
             <div>
-              <p><strong>会場：</strong>${(event.venues || []).join('<br/>')}</p>
+              <p><strong>会場：</strong><br/>${venueHtmlForEmail}</p>
               <p><strong>日付：</strong>${event.date
                 .toDate()
                 .toLocaleDateString('ja-JP')}</p>
@@ -193,7 +210,7 @@ export default function EventDetailPage() {
             <p>${name}様から予約がありました。</p>
             <ul>
               <li><strong>イベント:</strong> ${event.title}</li>
-              <li><strong>会場:</strong> ${(event.venues || []).join('<br/>')}</li>
+              <li><strong>会場:</strong><br/>${venueHtmlForEmail}</li>
               <li><strong>日付:</strong> ${event.date
                 .toDate()
                 .toLocaleDateString("ja-JP")}</li>
